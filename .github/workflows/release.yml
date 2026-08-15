@@ -1,0 +1,66 @@
+name: 'publish'
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger build and release when pushing tags matching v* (e.g., v1.0.0)
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write # Needed to create GitHub releases and upload build assets
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            args: '--target aarch64-apple-darwin' # Apple Silicon (M1/M2/M3)
+          - platform: 'macos-latest'
+            args: '--target x86_64-apple-darwin'  # Intel Mac
+          - platform: 'ubuntu-22.04'
+            args: ''
+          - platform: 'windows-latest'
+            args: ''
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          # Build target for macOS cross-compilation
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install system dependencies (Ubuntu only)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build and Publish Tauri App
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: 'ReqTracker v__VERSION__'
+          releaseBody: 'Descarga el instalador correspondiente a tu sistema operativo para instalar ReqTracker.'
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
