@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit3, Lightbulb, Calendar } from 'lucide-react';
 import { db, Idea } from '../services/db';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 interface IdeasSectionProps {
   onDataChange: () => void;
@@ -18,7 +31,6 @@ export const IdeasSection: React.FC<IdeasSectionProps> = ({ onDataChange, refres
 
   const loadIdeas = () => {
     const list = db.getIdeas();
-    // Sort: newest first
     const sorted = [...list].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     setIdeas(sorted);
   };
@@ -47,7 +59,6 @@ export const IdeasSection: React.FC<IdeasSectionProps> = ({ onDataChange, refres
     if (!title.trim() && !content.trim()) return;
 
     if (editingIdea) {
-      // Editing
       const updated: Idea = {
         ...editingIdea,
         title: title.trim() || 'Sin Título',
@@ -55,7 +66,6 @@ export const IdeasSection: React.FC<IdeasSectionProps> = ({ onDataChange, refres
       };
       db.saveIdea(updated);
     } else {
-      // Creating
       const newIdea: Idea = {
         id: crypto.randomUUID(),
         title: title.trim() || 'Sin Título',
@@ -75,116 +85,139 @@ export const IdeasSection: React.FC<IdeasSectionProps> = ({ onDataChange, refres
 
   const handleDeleteIdea = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm('¿Estás seguro de que quieres eliminar esta idea?')) {
-      db.deleteIdea(id);
-      onDataChange();
-      loadIdeas();
-    }
+    db.deleteIdea(id);
+    onDataChange();
+    loadIdeas();
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', height: '100%' }}>
-      <div className="flex-between">
+    <div className="flex flex-col gap-4 h-full">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Banco de Ideas</h2>
-          <p className="text-muted" style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem' }}>
+          <h2 className="text-xl font-bold tracking-tight text-neutral-800 dark:text-neutral-50 font-sans">Banco de Ideas</h2>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed">
             Anota tus pensamientos rápidos, ideas de proyectos o notas importantes aquí.
           </p>
         </div>
-        <button className="btn btn-primary" onClick={handleOpenCreateModal}>
-          <Plus size={18} />
+        <Button size="sm" className="h-9 gap-1.5" onClick={handleOpenCreateModal}>
+          <Plus className="h-4.5 w-4.5" />
           <span>Nueva Idea</span>
-        </button>
+        </Button>
       </div>
 
-      <div style={{ borderBottom: '1px solid var(--border-color)', margin: '0.25rem 0' }}></div>
+      <Separator className="bg-neutral-200 dark:bg-neutral-800 my-1" />
 
       {ideas.length === 0 ? (
-        <div className="empty-state" style={{ flex: 1, justifyContent: 'center' }}>
-          <Lightbulb className="empty-state-icon" size={48} />
-          <h3>¿Tienes alguna idea nueva?</h3>
-          <p>Tu banco de ideas está vacío. Anota algo rápido para que no se te olvide.</p>
+        <div className="flex-1 flex flex-col items-center justify-center text-center p-8 gap-4">
+          <div className="p-4 bg-neutral-100 dark:bg-neutral-900 rounded-full text-neutral-400 dark:text-neutral-500">
+            <Lightbulb className="h-10 w-10" />
+          </div>
+          <div className="max-w-[320px] space-y-1.5">
+            <h3 className="font-semibold text-base text-neutral-800 dark:text-neutral-200">¿Tienes alguna idea nueva?</h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              Tu banco de ideas está vacío. Anota algo rápido para que no se te olvide.
+            </p>
+          </div>
         </div>
       ) : (
-        <div className="ideas-grid" style={{ overflowY: 'auto', flex: 1, paddingRight: '0.5rem', paddingBottom: '2rem' }}>
+        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto pr-1 pb-8">
           {ideas.map(idea => (
-            <div key={idea.id} className="card idea-card" onClick={(e) => handleOpenEditModal(idea, e)} style={{ cursor: 'pointer' }}>
-              <div className="idea-card-header">
-                <h3 className="idea-title">{idea.title}</h3>
-                <div style={{ display: 'flex', gap: '0.25rem' }} onClick={(e) => e.stopPropagation()}>
-                  <button
-                    className="btn-icon"
-                    style={{ padding: '0.25rem' }}
-                    onClick={(e) => handleOpenEditModal(idea, e)}
-                    title="Editar idea"
+            <Card 
+              key={idea.id} 
+              className="group cursor-pointer transition-all duration-200 hover:bg-neutral-100/50 dark:hover:bg-neutral-900/40 border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/10 flex flex-col shadow-none relative h-[180px] select-none"
+              onClick={(e) => handleOpenEditModal(idea, e)}
+            >
+              <CardContent className="p-4 flex flex-col h-full gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-sm truncate pr-12 text-neutral-800 dark:text-neutral-50">{idea.title}</h3>
+                  <div 
+                    className="absolute right-2 top-2 flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity" 
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <Edit3 size={14} />
-                  </button>
-                  <button
-                    className="btn-icon"
-                    style={{ padding: '0.25rem' }}
-                    onClick={(e) => handleDeleteIdea(idea.id, e)}
-                    title="Eliminar idea"
-                  >
-                    <Trash2 size={14} style={{ color: 'var(--accent-red)' }} />
-                  </button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50"
+                      onClick={(e) => handleOpenEditModal(idea, e)}
+                      title="Editar idea"
+                    >
+                      <Edit3 className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-neutral-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50"
+                      onClick={(e) => handleDeleteIdea(idea.id, e)}
+                      title="Eliminar idea"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-              <p className="idea-content">{idea.content}</p>
-              <div className="flex-row text-muted" style={{ fontSize: '0.7rem', marginTop: 'auto' }}>
-                <Calendar size={12} />
-                <span>{new Date(idea.created_at).toLocaleDateString()} {new Date(idea.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
-            </div>
+                
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed overflow-hidden break-words select-text line-clamp-4 flex-1">
+                  {idea.content}
+                </p>
+                
+                <div className="flex items-center gap-1.5 text-[10px] text-neutral-400 dark:text-neutral-500 font-medium mt-auto select-none">
+                  <Calendar className="h-3 w-3" />
+                  <span>
+                    {new Date(idea.created_at).toLocaleDateString()} {new Date(idea.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
 
       {/* Modal for creating/editing idea */}
-      {isModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
-            <div className="modal-header">
-              <h3 className="modal-title">{editingIdea ? 'Editar Idea' : 'Nueva Idea'}</h3>
-              <button className="btn-icon" onClick={() => setIsModalOpen(false)}>✕</button>
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[500px] border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold tracking-tight">
+              {editingIdea ? 'Editar Idea' : 'Nueva Idea'}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveIdea} className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="idea-title" className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                Título de la Idea
+              </Label>
+              <Input
+                id="idea-title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ej. App de recetas, API en Rust, etc. (Opcional)"
+                autoFocus
+                className="bg-neutral-50 dark:bg-neutral-900/50 border-neutral-200 dark:border-neutral-800 focus-visible:ring-emerald-500"
+              />
             </div>
-            <form onSubmit={handleSaveIdea}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label htmlFor="idea-title">Título de la Idea</label>
-                  <input
-                    type="text"
-                    id="idea-title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Ej. App de recetas, API en Rust, etc. (Opcional)"
-                    autoFocus
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="idea-content">Contenido / Notas</label>
-                  <textarea
-                    id="idea-content"
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="Escribe tus ideas detalladamente aquí..."
-                    rows={8}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn" onClick={() => setIsModalOpen(false)}>
-                  Cancelar
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  {editingIdea ? 'Guardar Cambios' : 'Guardar Idea'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <div className="space-y-1.5">
+              <Label htmlFor="idea-content" className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                Contenido / Notas
+              </Label>
+              <Textarea
+                id="idea-content"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Escribe tus ideas detalladamente aquí..."
+                rows={6}
+                required
+                className="bg-neutral-50 dark:bg-neutral-900/50 border-neutral-200 dark:border-neutral-800 focus-visible:ring-emerald-500 resize-none"
+              />
+            </div>
+            <DialogFooter className="pt-2 gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">
+                {editingIdea ? 'Guardar Cambios' : 'Guardar Idea'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

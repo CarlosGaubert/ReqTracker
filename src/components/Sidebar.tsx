@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { FolderKanban, Lightbulb, Settings, RefreshCw, Sun, Moon } from 'lucide-react';
+import { db } from '../services/db';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 
 interface SidebarProps {
   activeSection: 'projects' | 'ideas' | 'settings';
   setActiveSection: (section: 'projects' | 'ideas' | 'settings') => void;
-  userEmail: string | null;
   onSync: () => void;
   isSyncing: boolean;
   theme: 'light' | 'dark';
@@ -14,13 +17,13 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   activeSection,
   setActiveSection,
-  userEmail,
   onSync,
   isSyncing,
   theme,
   toggleTheme,
 }) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const isDbConnected = !!db.getSupabaseClient();
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -36,84 +39,107 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, []);
 
   return (
-    <aside className="sidebar">
-      <div className="sidebar-header">
-        <div className="sidebar-logo">
-          <FolderKanban size={24} />
+    <aside className="w-[260px] border-r border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 flex flex-col h-full transition-colors duration-200">
+      <div className="p-6 border-b border-neutral-200 dark:border-neutral-800 flex items-center gap-3">
+        <div className="text-emerald-600 dark:text-emerald-400 flex items-center gap-2 font-bold text-xl tracking-tight">
+          <FolderKanban className="h-6 w-6" />
           <span>ReqTracker</span>
         </div>
       </div>
 
-      <nav className="sidebar-menu">
-        <button
-          className={`menu-item ${activeSection === 'projects' ? 'active' : ''}`}
+      <nav className="flex flex-col gap-1.5 p-4 flex-1">
+        <Button
+          variant={activeSection === 'projects' ? 'secondary' : 'ghost'}
+          className={`w-full justify-start gap-3 px-3 py-2 text-sm font-medium transition-colors ${
+            activeSection === 'projects' 
+              ? 'bg-neutral-200/60 dark:bg-neutral-800/60 text-neutral-900 dark:text-neutral-50' 
+              : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-neutral-50'
+          }`}
           onClick={() => setActiveSection('projects')}
         >
-          <FolderKanban size={18} />
+          <FolderKanban className="h-4 w-4" />
           <span>Proyectos</span>
-        </button>
+        </Button>
 
-        <button
-          className={`menu-item ${activeSection === 'ideas' ? 'active' : ''}`}
+        <Button
+          variant={activeSection === 'ideas' ? 'secondary' : 'ghost'}
+          className={`w-full justify-start gap-3 px-3 py-2 text-sm font-medium transition-colors ${
+            activeSection === 'ideas' 
+              ? 'bg-neutral-200/60 dark:bg-neutral-800/60 text-neutral-900 dark:text-neutral-50' 
+              : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-neutral-50'
+          }`}
           onClick={() => setActiveSection('ideas')}
         >
-          <Lightbulb size={18} />
+          <Lightbulb className="h-4 w-4" />
           <span>Ideas</span>
-        </button>
+        </Button>
 
-        <button
-          className={`menu-item ${activeSection === 'settings' ? 'active' : ''}`}
+        <Button
+          variant={activeSection === 'settings' ? 'secondary' : 'ghost'}
+          className={`w-full justify-start gap-3 px-3 py-2 text-sm font-medium transition-colors ${
+            activeSection === 'settings' 
+              ? 'bg-neutral-200/60 dark:bg-neutral-800/60 text-neutral-900 dark:text-neutral-50' 
+              : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-neutral-50'
+          }`}
           onClick={() => setActiveSection('settings')}
         >
-          <Settings size={18} />
+          <Settings className="h-4 w-4" />
           <span>Ajustes & Sync</span>
-        </button>
+        </Button>
       </nav>
 
-      <div className="sidebar-footer">
-        <div className="theme-toggle-row">
-          <span className="theme-toggle-label">
-            {theme === 'dark' ? 'Modo Oscuro' : 'Modo Claro'}
+      <div className="p-4 border-t border-neutral-200 dark:border-neutral-800 flex flex-col gap-4">
+        <div className="flex items-center justify-between px-2">
+          <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+            {theme === 'dark' ? 'Tema Oscuro' : 'Tema Claro'}
           </span>
-          <button 
-            className="btn-icon" 
+          <Button 
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-neutral-500 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-neutral-50"
             onClick={toggleTheme} 
             title={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
+            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
         </div>
 
-        <div className="sync-status-card">
-          <div className="sync-status-header">
-            <span>Conexión</span>
-            <div className="status-indicator">
-              <span className={`status-dot ${isOnline ? 'online' : ''}`}></span>
-              <span>{isOnline ? 'En línea' : 'Sin conexión'}</span>
-            </div>
-          </div>
-          {userEmail ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              <div className="sync-user" title={userEmail}>
-                {userEmail}
+        <Card className="border border-neutral-200 dark:border-neutral-800 bg-neutral-100/50 dark:bg-neutral-900/30 p-3 shadow-none">
+          <CardContent className="p-0 flex flex-col gap-2.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-neutral-500 dark:text-neutral-400 font-medium">Conexión</span>
+              <div className="flex items-center gap-1.5 text-neutral-600 dark:text-neutral-300 font-medium">
+                <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-neutral-400'}`}></span>
+                <span>{isOnline ? 'En línea' : 'Sin conexión'}</span>
               </div>
-              <button 
-                className="btn" 
-                style={{ padding: '0.4rem', fontSize: '0.75rem', marginTop: '0.25rem', width: '100%', justifyContent: 'center' }}
-                onClick={onSync}
-                disabled={isSyncing || !isOnline}
-              >
-                <RefreshCw size={12} className={isSyncing ? 'spin-animation' : ''} />
-                <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar'}</span>
-              </button>
             </div>
-          ) : (
-            <div className="text-muted" style={{ fontSize: '0.8rem' }}>
-              Modo Local (Sin sincronizar)
-            </div>
-          )}
-        </div>
+            
+            <Separator className="bg-neutral-200 dark:bg-neutral-850" />
+            
+            {isDbConnected ? (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>Nube Conectada</span>
+                </div>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-7 text-xs justify-center gap-1.5 mt-1 border-neutral-350 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50"
+                  onClick={onSync}
+                  disabled={isSyncing || !isOnline}
+                >
+                  <RefreshCw className={`h-3 w-3 ${isSyncing ? 'animate-spin' : ''}`} />
+                  <span>{isSyncing ? 'Sincronizando' : 'Sincronizar'}</span>
+                </Button>
+              </div>
+            ) : (
+              <div className="text-xs text-neutral-400 dark:text-neutral-500 font-medium">
+                Modo Local (Sin sincronizar)
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </aside>
   );

@@ -1,409 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Save, LogIn, LogOut, UserPlus, RefreshCw, AlertTriangle, Key, HelpCircle, Eye, EyeOff } from 'lucide-react';
+import { Save, RefreshCw, AlertTriangle, Key, HelpCircle, Copy, Check } from 'lucide-react';
 import { db, SupabaseConfig } from '../services/db';
-import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
-import { openUrl } from '@tauri-apps/plugin-opener';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 
-interface SettingsSectionProps {
-  onSync: () => Promise<void>;
-  isSyncing: boolean;
-  onSessionChange: () => void;
-}
-
-export const SettingsSection: React.FC<SettingsSectionProps> = ({
-  onSync,
-  isSyncing,
-  onSessionChange,
-}) => {
-  const [config, setConfig] = useState<SupabaseConfig>({ url: '', anonKey: '' });
-  const [isConfigSaved, setIsConfigSaved] = useState(false);
-  const [session, setSession] = useState<any>(null);
-  
-  // Auth Form states
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [authLoading, setAuthLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [oauthStatus, setOauthStatus] = useState<string | null>(null);
-
-  useEffect(() => {
-    const activeConfig = db.loadConfig();
-    if (activeConfig) {
-      setConfig(activeConfig);
-      setIsConfigSaved(true);
-      checkSession();
-    }
-  }, []);
-
-  const checkSession = async () => {
-    const supabase = db.getSupabaseClient();
-    if (supabase) {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      setSession(currentSession);
-    }
-  };
-
-  const handleSaveConfig = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!config.url.trim() || !config.anonKey.trim()) return;
-
-    db.saveConfig({
-      url: config.url.trim(),
-      anonKey: config.anonKey.trim(),
-    });
-    setIsConfigSaved(true);
-    setAuthError(null);
-    checkSession();
-    onSessionChange();
-  };
-
-  const handleClearConfig = () => {
-    if (confirm('¿Estás seguro de que quieres quitar las credenciales de Supabase? Esto desactivará la sincronización y cerrará tu sesión.')) {
-      db.saveConfig(null);
-      setConfig({ url: '', anonKey: '' });
-      setIsConfigSaved(false);
-      setSession(null);
-      setAuthError(null);
-      onSessionChange();
-    }
-  };
-
-  const handleEmailAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const supabase = db.getSupabaseClient();
-    if (!supabase) return;
-
-    setAuthError(null);
-    setAuthLoading(true);
-
-    try {
-      if (isSignUp) {
-        // Sign Up
-        const { data, error } = await supabase.auth.signUp({
-          email: email.trim(),
-          password: password,
-        });
-        if (error) throw error;
-        
-        // Sometimes signup auto-logs in, check
-        if (data.session) {
-          setSession(data.session);
-          await db.pushAllData(); // Push existing local data on first login
-          onSessionChange();
-          alert('¡Cuenta creada y sesión iniciada! Tus datos locales se han subido a la nube.');
-        } else {
-          alert('¡Registro exitoso! Por favor verifica tu correo para activar tu cuenta.');
-        }
-      } else {
-        // Log In
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password: password,
-        });
-        if (error) throw error;
-        setSession(data.session);
-        // Pull cloud data and merge
-        await db.pullAllData();
-        onSessionChange();
-      }
-      setEmail('');
-      setPassword('');
-    } catch (err: any) {
-      setAuthError(err.message || 'Error de autenticación');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handleOAuthLogin = async (provider: 'google' | 'azure') => {
-    const supabase = db.getSupabaseClient();
-    if (!supabase) return;
-
-    setAuthError(null);
-    setOauthStatus('Iniciando servidor local de autenticación...');
-
-    try {
-      // 1. Start OAuth local HTTP server in Rust
-      await invoke('start_oauth_server');
-
-      // 2. Listen to the Tauri event for callback
-      const unlisten = await listen<{ hash: string }>('oauth-callback', async (event) => {
-        setOauthStatus('Autenticación recibida. Iniciando sesión...');
-        const hash = event.payload.hash;
-        
-        // Parse access_token and refresh_token
-        // Format of hash: #access_token=xxx&refresh_token=yyy&...
-        const params = new URLSearchParams(hash.substring(1));
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
-
-        if (accessToken && refreshToken) {
-          try {
-            const { data, error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
-            if (error) throw error;
-
-            setSession(data.session);
-            setOauthStatus('Sincronizando datos...');
-            // Pull cloud data and merge
-            await db.pullAllData();
-            onSessionChange();
-            setOauthStatus(null);
-          } catch (e: any) {
-            setAuthError('Error al establecer la sesión: ' + e.message);
-            setOauthStatus(null);
-          }
-        } else {
-          setAuthError('No se encontraron tokens válidos en el callback.');
-          setOauthStatus(null);
-        }
-        
-        unlisten();
-      });
-
-      // 3. Open OAuth provider in system browser
-      const oauthUrl = `${config.url}/auth/v1/authorize?provider=${provider}&redirect_to=http://localhost:14209/callback`;
-      setOauthStatus('Abre tu navegador para completar el inicio de sesión...');
-      await openUrl(oauthUrl);
-
-    } catch (e: any) {
-      setAuthError('Error de OAuth: ' + e.message);
-      setOauthStatus(null);
-    }
-  };
-
-  const handleLogout = async () => {
-    const supabase = db.getSupabaseClient();
-    if (!supabase) return;
-
-    if (confirm('¿Quieres cerrar sesión? Tus datos guardados seguirán en tu base de datos local.')) {
-      await supabase.auth.signOut();
-      setSession(null);
-      onSessionChange();
-    }
-  };
-
-  return (
-    <div className="settings-container">
-      {/* 1. Supabase Credentials Card */}
-      <div className="settings-group">
-        <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>Configuración de Base de Datos en la Nube</h3>
-        <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem' }}>
-          Para activar la sincronización online de requerimientos e ideas, necesitas conectar tu propio proyecto de <strong>Supabase</strong>.
-        </p>
-
-        {!isConfigSaved ? (
-          <form onSubmit={handleSaveConfig} className="card">
-            <div className="form-group">
-              <label htmlFor="sb-url" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <Key size={14} />
-                <span>Supabase Project URL</span>
-              </label>
-              <input
-                type="text"
-                id="sb-url"
-                value={config.url}
-                onChange={(e) => setConfig({ ...config, url: e.target.value })}
-                placeholder="Ej. https://xxxxxx.supabase.co"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="sb-key" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <Key size={14} />
-                <span>Supabase Project Anon Key</span>
-              </label>
-              <input
-                type="password"
-                id="sb-key"
-                value={config.anonKey}
-                onChange={(e) => setConfig({ ...config, anonKey: e.target.value })}
-                placeholder="Ej. eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                required
-              />
-            </div>
-            <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>
-              <Save size={16} />
-              <span>Conectar Base de Datos</span>
-            </button>
-          </form>
-        ) : (
-          <div className="card flex-between">
-            <div>
-              <div style={{ fontWeight: 600, color: 'var(--accent-green)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <span className="status-dot online"></span>
-                <span>Base de Datos Conectada</span>
-              </div>
-              <p className="text-muted" style={{ fontSize: '0.8rem', margin: '0.25rem 0 0 0' }}>
-                URL: {config.url}
-              </p>
-            </div>
-            <button className="btn btn-danger" onClick={handleClearConfig}>
-              Desconectar
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* 2. Authentication Section */}
-      {isConfigSaved && (
-        <div className="settings-group">
-          <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>Inicio de Sesión y Sincronización</h3>
-          <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem' }}>
-            Inicia sesión para sincronizar tus requerimientos e ideas con la nube.
-          </p>
-
-          {authError && (
-            <div className="card flex-row" style={{ borderColor: 'var(--accent-red)', backgroundColor: 'rgba(239, 68, 68, 0.05)', color: '#f87171' }}>
-              <AlertTriangle size={20} />
-              <span>{authError}</span>
-            </div>
-          )}
-
-          {oauthStatus && (
-            <div className="card flex-row" style={{ borderColor: 'var(--accent-blue)', backgroundColor: 'var(--accent-blue-active)', color: 'var(--accent-blue)' }}>
-              <RefreshCw size={20} className="spin-animation" />
-              <span>{oauthStatus}</span>
-            </div>
-          )}
-
-          {session ? (
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div className="flex-between">
-                <div>
-                  <div className="text-muted" style={{ fontSize: '0.85rem' }}>Sesión activa como:</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 600, marginTop: '0.25rem' }}>{session.user.email}</div>
-                </div>
-                <button className="btn btn-danger" onClick={handleLogout}>
-                  <LogOut size={16} />
-                  <span>Cerrar Sesión</span>
-                </button>
-              </div>
-              
-              <div style={{ borderBottom: '1px solid var(--border-color)' }}></div>
-
-              <div className="flex-between">
-                <div>
-                  <div style={{ fontWeight: 600 }}>Sincronización Bidireccional</div>
-                  <p className="text-muted" style={{ fontSize: '0.8rem', margin: '0.25rem 0 0 0' }}>
-                    Si realizaste cambios sin conexión, se sincronizarán ahora.
-                  </p>
-                </div>
-                <button className="btn btn-primary" onClick={onSync} disabled={isSyncing}>
-                  <RefreshCw size={16} className={isSyncing ? 'spin-animation' : ''} />
-                  <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar Ahora'}</span>
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="auth-card">
-              {/* OAuth Google & Microsoft */}
-              <div className="oauth-buttons">
-                <button className="btn btn-oauth flex-row" onClick={() => handleOAuthLogin('google')}>
-                  <img src="https://www.google.com/favicon.ico" alt="Google Logo" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                  <span>Iniciar sesión con Google</span>
-                </button>
-                <button className="btn btn-oauth flex-row" onClick={() => handleOAuthLogin('azure')}>
-                  <img src="https://www.microsoft.com/favicon.ico" alt="Microsoft Logo" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                  <span>Iniciar sesión con Microsoft (Outlook)</span>
-                </button>
-              </div>
-
-              <div className="or-divider">o usa tu correo electrónico</div>
-
-              {/* Email / Password Auth */}
-              <form onSubmit={handleEmailAuth} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div className="form-group">
-                  <label htmlFor="auth-email">Correo Electrónico</label>
-                  <input
-                    type="email"
-                    id="auth-email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="tucorreo@ejemplo.com"
-                    required
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="auth-pass">Contraseña</label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      id="auth-pass"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      required
-                      style={{ paddingRight: '2.5rem' }}
-                    />
-                    <button
-                      type="button"
-                      className="btn-icon"
-                      onClick={() => setShowPassword(!showPassword)}
-                      style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', padding: '0.2rem' }}
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex-between" style={{ marginTop: '0.5rem' }}>
-                  <button
-                    type="button"
-                    style={{ background: 'none', border: 'none', color: 'var(--accent-blue)', cursor: 'pointer', fontSize: '0.9rem', padding: 0 }}
-                    onClick={() => setIsSignUp(!isSignUp)}
-                  >
-                    {isSignUp ? '¿Ya tienes una cuenta? Inicia Sesión' : '¿No tienes una cuenta? Regístrate'}
-                  </button>
-
-                  <button type="submit" className="btn btn-primary" disabled={authLoading}>
-                    {authLoading ? (
-                      <RefreshCw size={16} className="spin-animation" />
-                    ) : isSignUp ? (
-                      <UserPlus size={16} />
-                    ) : (
-                      <LogIn size={16} />
-                    )}
-                    <span>{isSignUp ? 'Registrarse' : 'Iniciar Sesión'}</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 3. Setup Help Card */}
-      <div className="card flex-row" style={{ gap: '1rem', backgroundColor: 'rgba(255, 255, 255, 0.01)' }}>
-        <HelpCircle size={24} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
-        <div>
-          <h4 style={{ margin: 0, fontWeight: 600 }}>¿Cómo crear un proyecto gratis en Supabase?</h4>
-          <ol style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem', color: 'var(--text-secondary)', lineHeight: 1.5, fontSize: '0.85rem' }}>
-            <li>Ve a <a href="https://supabase.com" target="_blank" rel="noreferrer">supabase.com</a> y crea una cuenta gratis.</li>
-            <li>Crea un nuevo proyecto y copia la <strong>URL del proyecto</strong> y la <strong>Clave Anon (Anon Key)</strong> (están en Configuración de la API).</li>
-            <li>En la sección <strong>Authentication &gt; URL Configuration</strong> de Supabase, establece tu Site URL o añade <code>http://localhost:14209/callback</code> a la lista de Redirect URLs si deseas usar login con Google/Outlook.</li>
-            <li>Crea tres tablas en tu editor SQL con este script:
-              <pre style={{ backgroundColor: 'var(--bg-primary)', padding: '0.5rem', borderRadius: '6px', fontSize: '0.75rem', overflowX: 'auto', marginTop: '0.35rem' }}>
-{`-- 1. Tabla de Proyectos
+const SQL_SCRIPT = `-- 1. Tabla de Proyectos
 create table projects (
   id uuid primary key,
-  user_id uuid references auth.users not null,
   name text not null,
   description text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 2. Tabla de Requerimientos
+-- 2. Tabla de Requerimientos (To-Do)
 create table requirements (
   id uuid primary key,
   project_id uuid references projects on delete cascade not null,
-  user_id uuid references auth.users not null,
   title text not null,
   description text,
   status text not null check (status in ('todo', 'in-progress', 'done')),
@@ -416,16 +31,296 @@ create table requirements (
 -- 3. Tabla de Ideas
 create table ideas (
   id uuid primary key,
-  user_id uuid references auth.users not null,
   title text not null,
   content text not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);`}
-              </pre>
+);`;
+
+const highlightSQL = (code: string) => {
+  const lines = code.split('\n');
+  return lines.map((line, idx) => {
+    if (line.trim().startsWith('--')) {
+      return (
+        <div key={idx} className="text-neutral-450 dark:text-neutral-500 italic">
+          {line}
+        </div>
+      );
+    }
+
+    const parts: React.ReactNode[] = [];
+    const tokenRegex = /(--.*)|('[^']*')|(\b(?:create table|table|primary key|not null|references|on delete cascade|check|default|in|constraint)\b)|(\b(?:uuid|text|timestamp with time zone|boolean|timestamp)\b)|(\b(?:timezone|now)\b)|([(),;])/gi;
+    
+    let lastIndex = 0;
+    let match;
+    let key = 0;
+
+    tokenRegex.lastIndex = 0;
+
+    while ((match = tokenRegex.exec(line)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(line.substring(lastIndex, match.index));
+      }
+
+      const [, comment, string, keyword, type, func, symbol] = match;
+
+      if (comment) {
+        parts.push(<span key={key++} className="text-neutral-450 dark:text-neutral-500 italic">{comment}</span>);
+      } else if (string) {
+        parts.push(<span key={key++} className="text-emerald-600 dark:text-emerald-400 font-medium">{string}</span>);
+      } else if (keyword) {
+        parts.push(<span key={key++} className="text-amber-600 dark:text-amber-500 font-bold">{keyword}</span>);
+      } else if (type) {
+        parts.push(<span key={key++} className="text-sky-600 dark:text-sky-400 font-semibold">{type}</span>);
+      } else if (func) {
+        parts.push(<span key={key++} className="text-violet-600 dark:text-violet-400">{func}</span>);
+      } else if (symbol) {
+        parts.push(<span key={key++} className="text-neutral-450 dark:text-neutral-600 font-bold">{symbol}</span>);
+      }
+
+      lastIndex = tokenRegex.lastIndex;
+    }
+
+    if (lastIndex < line.length) {
+      parts.push(line.substring(lastIndex));
+    }
+
+    return (
+      <div key={idx} className="min-h-[1.2rem] whitespace-pre">
+        {parts.length > 0 ? parts : ' '}
+      </div>
+    );
+  });
+};
+
+interface SettingsSectionProps {
+  onSync: () => Promise<void>;
+  isSyncing: boolean;
+  onSessionChange: () => void;
+  syncError?: string | null;
+}
+
+export const SettingsSection: React.FC<SettingsSectionProps> = ({
+  onSync,
+  isSyncing,
+  onSessionChange,
+  syncError,
+}) => {
+  const [config, setConfig] = useState<SupabaseConfig>({ url: '', anonKey: '' });
+  const [isConfigSaved, setIsConfigSaved] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopySQL = () => {
+    navigator.clipboard.writeText(SQL_SCRIPT);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  useEffect(() => {
+    const activeConfig = db.loadConfig();
+    if (activeConfig) {
+      setConfig(activeConfig);
+      setIsConfigSaved(true);
+    }
+  }, []);
+
+  const handleSaveConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!config.url.trim() || !config.anonKey.trim()) return;
+
+    setAuthError(null);
+    setIsTestingConnection(true);
+
+    try {
+      const test = await db.testConnection(config.url.trim(), config.anonKey.trim());
+      if (test.success) {
+        db.saveConfig({
+          url: config.url.trim(),
+          anonKey: config.anonKey.trim(),
+        });
+        setIsConfigSaved(true);
+        onSessionChange();
+      } else {
+        setAuthError(test.error || 'No se pudo conectar a Supabase. Verifica la URL y la clave Anon Key.');
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Error de conexión.');
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
+
+  const handleClearConfig = () => {
+    db.saveConfig(null);
+    setConfig({ url: '', anonKey: '' });
+    setIsConfigSaved(false);
+    setAuthError(null);
+    onSessionChange();
+  };
+
+  return (
+    <div className="flex flex-col gap-5 h-full overflow-y-auto pr-1 pb-8">
+      {/* 1. Supabase Credentials Card */}
+      <div className="flex flex-col gap-2">
+        <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">Configuración de Base de Datos en la Nube</h3>
+        <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+          Conecta tu propio proyecto de <strong>Supabase</strong> para activar la sincronización en la nube de tus proyectos, requerimientos e ideas de forma transparente.
+        </p>
+
+        {authError && (
+          <Card className="border-red-500/25 bg-red-500/5 text-red-600 dark:text-red-400 shadow-none">
+            <CardContent className="p-3.5 flex items-center gap-2.5 text-xs font-medium">
+              <AlertTriangle className="h-4.5 w-4.5 flex-shrink-0" />
+              <span>{authError}</span>
+            </CardContent>
+          </Card>
+        )}
+
+        {!isConfigSaved ? (
+          <form onSubmit={handleSaveConfig} className="space-y-4 border border-neutral-200 dark:border-neutral-800 p-4 rounded-xl bg-white dark:bg-neutral-900/10">
+            <div className="space-y-1.5">
+              <Label htmlFor="sb-url" className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5">
+                <Key className="h-3.5 w-3.5" />
+                <span>Supabase Project URL</span>
+              </Label>
+              <Input
+                type="text"
+                id="sb-url"
+                value={config.url}
+                onChange={(e) => setConfig({ ...config, url: e.target.value })}
+                placeholder="Ej. https://xxxxxx.supabase.co"
+                required
+                disabled={isTestingConnection}
+                className="bg-neutral-50 dark:bg-neutral-900/50 border-neutral-200 dark:border-neutral-800 focus-visible:ring-emerald-500 text-sm h-9"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sb-key" className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5">
+                <Key className="h-3.5 w-3.5" />
+                <span>Supabase Project Anon Key</span>
+              </Label>
+              <Input
+                type="password"
+                id="sb-key"
+                value={config.anonKey}
+                onChange={(e) => setConfig({ ...config, anonKey: e.target.value })}
+                placeholder="Ej. eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                required
+                disabled={isTestingConnection}
+                className="bg-neutral-50 dark:bg-neutral-900/50 border-neutral-200 dark:border-neutral-800 focus-visible:ring-emerald-500 text-sm h-9"
+              />
+            </div>
+            <Button type="submit" className="h-9 gap-1.5" disabled={isTestingConnection}>
+              {isTestingConnection ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  <span>Probando Conexión...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  <span>Conectar Base de Datos</span>
+                </>
+              )}
+            </Button>
+          </form>
+        ) : (
+          <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/10 shadow-none">
+            <CardContent className="p-4 flex flex-col gap-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Base de Datos Conectada</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-450 dark:text-neutral-550 mt-1 truncate max-w-[400px]">
+                    URL: {config.url}
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="h-8 border-red-500/20 text-red-500 dark:text-red-400 hover:bg-red-500/5 hover:text-red-600 dark:hover:text-red-300"
+                  onClick={handleClearConfig}
+                >
+                  Desconectar
+                </Button>
+              </div>
+
+              <Separator className="bg-neutral-200 dark:bg-neutral-800" />
+
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-xs font-semibold text-neutral-800 dark:text-neutral-250">Sincronización Directa</div>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed max-w-[420px]">
+                    Sincroniza tus proyectos, tareas e ideas locales directamente con tu base de datos remota.
+                  </p>
+                </div>
+                <Button 
+                  size="sm"
+                  className="h-8 gap-1.5"
+                  onClick={onSync} 
+                  disabled={isSyncing}
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                  <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar Ahora'}</span>
+                </Button>
+              </div>
+
+              {syncError && (
+                <Card className="border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400 shadow-none mt-1">
+                  <CardContent className="p-3 flex items-center gap-2 text-xs font-medium">
+                    <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                    <span>Error al sincronizar: {syncError}</span>
+                  </CardContent>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* 2. Setup Help Card */}
+      <Card className="border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/5 shadow-none p-4 flex flex-col md:flex-row gap-4">
+        <HelpCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
+        <div className="space-y-2 flex-1">
+          <h4 className="font-semibold text-sm text-neutral-800 dark:text-neutral-200">¿Cómo crear un proyecto gratis en Supabase?</h4>
+          <ol className="list-decimal pl-4 text-xs text-neutral-500 dark:text-neutral-400 space-y-2 leading-relaxed">
+            <li>Ve a <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-emerald-600 dark:text-emerald-400 hover:underline">supabase.com</a> y crea una cuenta gratis.</li>
+            <li>Crea un nuevo proyecto y copia la <strong>URL del proyecto</strong> y la <strong>Clave Anon (Anon Key)</strong> en la pestaña API Settings.</li>
+            <li>Conecta tu base de datos aquí introduciendo esos datos.</li>
+            <li>Crea tres tablas en tu editor SQL de Supabase ejecutando este script simplificado:
+              <div className="relative group mt-2 border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden bg-neutral-100 dark:bg-neutral-900/60 max-w-full">
+                <div className="absolute right-2 top-2 z-10">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2.5 text-xs gap-1 border-neutral-350 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-900 shadow-none"
+                    onClick={handleCopySQL}
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">Copiado</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3.5 w-3.5" />
+                        <span className="font-medium">Copiar</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <pre className="p-4 text-[10px] font-mono text-neutral-600 dark:text-neutral-300 overflow-auto max-h-[300px] leading-relaxed pt-11 max-w-full">
+                  {highlightSQL(SQL_SCRIPT)}
+                </pre>
+              </div>
             </li>
           </ol>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

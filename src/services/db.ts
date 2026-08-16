@@ -62,6 +62,24 @@ class DatabaseService {
     });
   }
 
+  // --- Connection Test ---
+  public async testConnection(url: string, anonKey: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const testClient = createClient(url, anonKey);
+      // Simply check if we can connect to the Supabase endpoint (e.g. auth endpoint)
+      // getUser() performs a real fetch to verify if the anonKey and url are valid.
+      const { error } = await testClient.auth.getUser();
+      if (error) {
+        if (error.message.includes('Invalid API key') || error.message.includes('invalid') || error.status === 401 || error.status === 403) {
+          return { success: false, error: 'La clave Anon Key no es válida para este proyecto.' };
+        }
+      }
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.message || 'Error de conexión. Verifica que la URL sea correcta y que tengas internet.' };
+    }
+  }
+
   // --- Configuration ---
   public loadConfig(): SupabaseConfig | null {
     const configStr = localStorage.getItem('supabase_config');
@@ -120,7 +138,7 @@ class DatabaseService {
   }
 
   public deleteProject(id: string) {
-    // Also delete associated requirements
+    // Delete associated requirements
     const requirements = this.getRequirements().filter(r => r.project_id === id);
     requirements.forEach(r => this.deleteRequirement(r.id));
 
@@ -225,7 +243,6 @@ class DatabaseService {
 
   private queueSync(item: SyncQueueItem) {
     const queue = this.getSyncQueue();
-    // Remove previous actions for this item to avoid redundant ops
     const filteredQueue = queue.filter(q => !(q.id === item.id && q.type === item.type));
     filteredQueue.push(item);
     this.saveSyncQueue(filteredQueue);
@@ -233,18 +250,14 @@ class DatabaseService {
     this.syncPendingQueue();
   }
 
-  public async syncPendingQueue() {
-    if (this.isOffline || !this.supabase) return;
+  public async syncPendingQueue(): Promise<{ success: boolean; error?: string }> {
+    if (this.isOffline || !this.supabase) return { success: true };
     
-    // Check if user is logged in
-    const { data: { session } } = await this.supabase.auth.getSession();
-    if (!session) return;
-
-    const user_id = session.user.id;
     const queue = this.getSyncQueue();
-    if (queue.length === 0) return;
+    if (queue.length === 0) return { success: true };
 
     const remainingQueue: SyncQueueItem[] = [];
+    let lastError: any = null;
 
     for (const item of queue) {
       try {
@@ -254,81 +267,70 @@ class DatabaseService {
           const { error } = await this.supabase
             .from(table)
             .delete()
-            .eq('id', item.id)
-            .eq('user_id', user_id);
+            .eq('id', item.id);
 
           if (error) throw error;
         } else if (item.action === 'upsert') {
-          const dataWithUser = { ...item.data, user_id };
+          // Exclude user_id property to avoid DB constraint failures since there is no session
+          const { user_id, ...cleanData } = item.data;
+          
           const { error } = await this.supabase
             .from(table)
-            .upsert(dataWithUser);
+            .upsert(cleanData);
 
           if (error) throw error;
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error(`Failed to sync item ${item.id} of type ${item.type}`, e);
-        remainingQueue.push(item); // Keep in queue to retry later
+        remainingQueue.push(item);
+        lastError = e;
       }
     }
 
     this.saveSyncQueue(remainingQueue);
+
+    if (remainingQueue.length > 0) {
+      return { success: false, error: lastError?.message || lastError || 'Error al guardar algunos datos locales en Supabase.' };
+    }
+    return { success: true };
   }
 
-  // --- Pull Data from Cloud (after Login) ---
+  // --- Pull Data from Cloud (Direct Sync) ---
   public async pullAllData(): Promise<{ success: boolean; error?: string }> {
     if (!this.supabase) return { success: false, error: 'Supabase client not initialized' };
 
     try {
-      const { data: { session } } = await this.supabase.auth.getSession();
-      if (!session) return { success: false, error: 'No active session' };
-
-      const user_id = session.user.id;
-
       // 1. Pull Projects
       const { data: cloudProjects, error: pError } = await this.supabase
         .from('projects')
-        .select('*')
-        .eq('user_id', user_id);
+        .select('*');
 
       if (pError) throw pError;
 
       // 2. Pull Requirements
       const { data: cloudReqs, error: rError } = await this.supabase
         .from('requirements')
-        .select('*')
-        .eq('user_id', user_id);
+        .select('*');
 
       if (rError) throw rError;
 
       // 3. Pull Ideas
       const { data: cloudIdeas, error: iError } = await this.supabase
         .from('ideas')
-        .select('*')
-        .eq('user_id', user_id);
+        .select('*');
 
       if (iError) throw iError;
 
-      // Merge data (cloud takes precedence, but we merge unique local ones if they aren't synced yet)
-      const localProjects = this.getProjects();
-      const localReqs = this.getRequirements();
-      const localIdeas = this.getIdeas();
-
-      // Simple merge logic: Use Map keyed by ID
-      const projectsMap = new Map<string, Project>();
-      localProjects.forEach(p => projectsMap.set(p.id, p));
-      (cloudProjects || []).forEach((p: any) => projectsMap.set(p.id, {
+      // Overwrite local storage with cloud tables (Supabase is source of truth after pushing)
+      const projects = (cloudProjects || []).map((p: any) => ({
         id: p.id,
         name: p.name,
         description: p.description,
         created_at: p.created_at,
-        user_id: p.user_id,
       }));
-      localStorage.setItem('projects', JSON.stringify(Array.from(projectsMap.values())));
+      localStorage.setItem('projects', JSON.stringify(projects));
 
-      const reqsMap = new Map<string, Requirement>();
-      localReqs.forEach(r => reqsMap.set(r.id, r));
-      (cloudReqs || []).forEach((r: any) => reqsMap.set(r.id, {
+      const reqs = (cloudReqs || []).map((r: any) => ({
         id: r.id,
         project_id: r.project_id,
         title: r.title,
@@ -338,22 +340,18 @@ class DatabaseService {
         estimated_date: r.estimated_date,
         alarm_enabled: r.alarm_enabled,
         notified: r.notified,
-        user_id: r.user_id,
       }));
-      localStorage.setItem('requirements', JSON.stringify(Array.from(reqsMap.values())));
+      localStorage.setItem('requirements', JSON.stringify(reqs));
 
-      const ideasMap = new Map<string, Idea>();
-      localIdeas.forEach(i => ideasMap.set(i.id, i));
-      (cloudIdeas || []).forEach((i: any) => ideasMap.set(i.id, {
+      const ideas = (cloudIdeas || []).map((i: any) => ({
         id: i.id,
         title: i.title,
         content: i.content,
         created_at: i.created_at,
-        user_id: i.user_id,
       }));
-      localStorage.setItem('ideas', JSON.stringify(Array.from(ideasMap.values())));
+      localStorage.setItem('ideas', JSON.stringify(ideas));
 
-      // Clear sync queue since everything is clean now
+      // Clear sync queue
       this.saveSyncQueue([]);
 
       return { success: true };
@@ -368,36 +366,35 @@ class DatabaseService {
     if (!this.supabase) return { success: false, error: 'Supabase client not initialized' };
 
     try {
-      const { data: { session } } = await this.supabase.auth.getSession();
-      if (!session) return { success: false, error: 'No active session' };
-
-      const user_id = session.user.id;
-
       const projects = this.getProjects();
       const reqs = this.getRequirements();
       const ideas = this.getIdeas();
 
       // Push projects
       if (projects.length > 0) {
+        // Exclude user_id
+        const cleanProjects = projects.map(({ user_id, ...p }) => p);
         const { error } = await this.supabase
           .from('projects')
-          .upsert(projects.map(p => ({ ...p, user_id })));
+          .upsert(cleanProjects);
         if (error) throw error;
       }
 
       // Push requirements
       if (reqs.length > 0) {
+        const cleanReqs = reqs.map(({ user_id, ...r }) => r);
         const { error } = await this.supabase
           .from('requirements')
-          .upsert(reqs.map(r => ({ ...r, user_id })));
+          .upsert(cleanReqs);
         if (error) throw error;
       }
 
       // Push ideas
       if (ideas.length > 0) {
+        const cleanIdeas = ideas.map(({ user_id, ...i }) => i);
         const { error } = await this.supabase
           .from('ideas')
-          .upsert(ideas.map(i => ({ ...i, user_id })));
+          .upsert(cleanIdeas);
         if (error) throw error;
       }
 

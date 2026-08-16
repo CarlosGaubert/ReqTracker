@@ -9,9 +9,9 @@ import './App.css';
 
 function App() {
   const [activeSection, setActiveSection] = useState<'projects' | 'ideas' | 'settings'>('projects');
-  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [syncError, setSyncError] = useState<string | null>(null);
   
   // Theme state: defaults to dark grayscale
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -22,36 +22,21 @@ function App() {
   // Apply theme to HTML tag on mount/change
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Request notification permissions, start alarm checker, check session
+  // Request notification permissions, start alarm checker
   useEffect(() => {
     // Request OS notification permissions early
     requestNotificationPermission().catch(console.error);
 
     // Start background alarm checker (runs once, then every 60s)
     startAlarmChecker(60000);
-
-    // Initial session check
-    checkSession();
-
-    // Set up Supabase Auth state listener if client is initialized
-    let authListenerSubscription: any = null;
-    const supabase = db.getSupabaseClient();
-    if (supabase) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session) {
-          setUserEmail(session.user.email || 'Usuario');
-          // Auto sync when state changes
-          handleSync();
-        } else {
-          setUserEmail(null);
-        }
-        setRefreshTrigger(prev => prev + 1);
-      });
-      authListenerSubscription = subscription;
-    }
 
     // Auto-sync periodically if online
     const autoSyncInterval = setInterval(() => {
@@ -64,9 +49,6 @@ function App() {
 
     return () => {
       stopAlarmChecker();
-      if (authListenerSubscription) {
-        authListenerSubscription.unsubscribe();
-      }
       clearInterval(autoSyncInterval);
     };
   }, []);
@@ -75,37 +57,27 @@ function App() {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
-  const checkSession = async () => {
-    const supabase = db.getSupabaseClient();
-    if (supabase) {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setUserEmail(session.user.email || 'Usuario');
-      } else {
-        setUserEmail(null);
-      }
-    } else {
-      setUserEmail(null);
-    }
-  };
-
   const handleSync = async () => {
     const supabase = db.getSupabaseClient();
     if (!supabase) return;
 
     setIsSyncing(true);
+    setSyncError(null);
     try {
       // First push any pending offline changes
-      await db.syncPendingQueue();
-      // Then pull recent data from the cloud
-      const res = await db.pullAllData();
-      if (res.success) {
-        console.log('Sincronización exitosa con Supabase.');
-      } else {
-        console.warn('Sincronización fallida:', res.error);
+      const pushRes = await db.syncPendingQueue();
+      if (!pushRes.success) {
+        setSyncError(pushRes.error || 'Error al guardar los datos locales en Supabase.');
+        return;
       }
-    } catch (e) {
+      // Then pull recent data from the cloud
+      const pullRes = await db.pullAllData();
+      if (!pullRes.success) {
+        setSyncError(pullRes.error || 'Error al descargar los datos desde Supabase.');
+      }
+    } catch (e: any) {
       console.error('Error durante la sincronización:', e);
+      setSyncError(e.message || 'Error de red durante la sincronización.');
     } finally {
       setIsSyncing(false);
       setRefreshTrigger(prev => prev + 1);
@@ -113,9 +85,7 @@ function App() {
   };
 
   const handleSessionChange = () => {
-    checkSession().then(() => {
-      handleSync();
-    });
+    handleSync();
   };
 
   const handleDataChange = () => {
@@ -140,7 +110,6 @@ function App() {
       <Sidebar
         activeSection={activeSection}
         setActiveSection={setActiveSection}
-        userEmail={userEmail}
         onSync={handleSync}
         isSyncing={isSyncing}
         theme={theme}
@@ -178,6 +147,7 @@ function App() {
               onSync={handleSync}
               isSyncing={isSyncing}
               onSessionChange={handleSessionChange}
+              syncError={syncError}
             />
           )}
         </section>
