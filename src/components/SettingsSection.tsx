@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { isPermissionGranted } from '@tauri-apps/plugin-notification';
 import { Save, RefreshCw, AlertTriangle, Key, HelpCircle, Copy, Check } from 'lucide-react';
 import { db, SupabaseConfig } from '../services/db';
 import { Button } from '@/components/ui/button';
@@ -110,6 +111,20 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
   const [authError, setAuthError] = useState<string | null>(null);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [notificationsAllowed, setNotificationsAllowed] = useState(true);
+
+  const checkNotificationPermissions = async () => {
+    try {
+      const allowed = await isPermissionGranted();
+      setNotificationsAllowed(allowed);
+    } catch (e) {
+      console.error('Error checking permissions', e);
+    }
+  };
+
+  useEffect(() => {
+    checkNotificationPermissions();
+  }, []);
 
   const handleCopySQL = () => {
     navigator.clipboard.writeText(SQL_SCRIPT);
@@ -167,6 +182,18 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
         <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
           Conecta tu propio proyecto de <strong>Supabase</strong> para activar la sincronización en la nube de tus proyectos, requerimientos e ideas de forma transparente.
         </p>
+
+        {!notificationsAllowed && (
+          <Card className="border-amber-500/25 bg-amber-500/5 text-amber-600 dark:text-amber-400 shadow-none">
+            <CardContent className="p-3.5 flex items-start gap-2.5 text-xs leading-relaxed font-medium">
+              <AlertTriangle className="h-4.5 w-4.5 flex-shrink-0 mt-0.5 text-amber-500" />
+              <div className="space-y-1">
+                <span className="font-bold block">Notificaciones del Sistema Desactivadas</span>
+                <span>ReqTracker necesita permisos de notificaciones para alertarte cuando un requerimiento esté por vencer. Por favor, habilítalas en la configuración de notificaciones de tu sistema operativo.</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {authError && (
           <Card className="border-red-500/25 bg-red-500/5 text-red-600 dark:text-red-400 shadow-none">

@@ -14,13 +14,94 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+const parseInlineMarkdown = (text: string): React.ReactNode => {
+  const regex = /(\*\*.*?\*\*)|(`.*?`)/g;
+  let lastIndex = 0;
+  let match;
+  let key = 0;
+  const parts: React.ReactNode[] = [];
 
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.substring(lastIndex, match.index));
+    }
+
+    const [, bold, code] = match;
+    if (bold) {
+      parts.push(<strong key={key++} className="font-bold text-neutral-850 dark:text-neutral-100">{bold.slice(2, -2)}</strong>);
+    } else if (code) {
+      parts.push(<code key={key++} className="bg-neutral-100 dark:bg-neutral-900 px-1 py-0.5 rounded text-[10px] font-mono text-emerald-600 dark:text-emerald-450">{code.slice(1, -1)}</code>);
+    }
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+
+  return parts.length > 0 ? <>{parts}</> : text;
+};
+
+const renderMarkdown = (text: string) => {
+  const lines = text.split('\n');
+  return lines.map((line, idx) => {
+    const trimmed = line.trim();
+    
+    // Checkboxes
+    if (trimmed.startsWith('[x] ') || trimmed.startsWith('[ ] ')) {
+      const checked = trimmed.startsWith('[x] ');
+      return (
+        <div key={idx} className="flex items-center gap-1.5 text-neutral-500 dark:text-neutral-400">
+          <input 
+            type="checkbox" 
+            checked={checked} 
+            readOnly 
+            className="h-3 w-3 rounded border-neutral-300 dark:border-neutral-700 pointer-events-none accent-emerald-500 opacity-80" 
+          />
+          <span className={checked ? 'line-through opacity-60' : ''}>
+            {parseInlineMarkdown(trimmed.substring(4))}
+          </span>
+        </div>
+      );
+    }
+
+    // Bullets
+    if (trimmed.startsWith('- ')) {
+      return (
+        <li key={idx} className="list-disc list-inside text-neutral-500 dark:text-neutral-400 pl-1">
+          {parseInlineMarkdown(trimmed.substring(2))}
+        </li>
+      );
+    }
+
+    // Headers
+    if (trimmed.startsWith('# ')) {
+      return <h1 key={idx} className="text-sm font-bold text-neutral-800 dark:text-neutral-200 mt-1 mb-0.5">{parseInlineMarkdown(trimmed.substring(2))}</h1>;
+    }
+    if (trimmed.startsWith('## ')) {
+      return <h2 key={idx} className="text-xs font-bold text-neutral-800 dark:text-neutral-200 mt-1 mb-0.5">{parseInlineMarkdown(trimmed.substring(3))}</h2>;
+    }
+
+    return (
+      <div key={idx} className="min-h-[1rem] text-neutral-500 dark:text-neutral-400">
+        {parseInlineMarkdown(line)}
+      </div>
+    );
+  });
+};
 interface IdeasSectionProps {
   onDataChange: () => void;
   refreshTrigger: number;
+  forceOpenNewIdea: boolean;
+  setForceOpenNewIdea: (open: boolean) => void;
 }
 
-export const IdeasSection: React.FC<IdeasSectionProps> = ({ onDataChange, refreshTrigger }) => {
+export const IdeasSection: React.FC<IdeasSectionProps> = ({ 
+  onDataChange, 
+  refreshTrigger,
+  forceOpenNewIdea,
+  setForceOpenNewIdea
+}) => {
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingIdea, setEditingIdea] = useState<Idea | null>(null);
@@ -28,6 +109,16 @@ export const IdeasSection: React.FC<IdeasSectionProps> = ({ onDataChange, refres
   // Form states
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+
+  useEffect(() => {
+    if (forceOpenNewIdea) {
+      setTitle('');
+      setContent('');
+      setEditingIdea(null);
+      setIsModalOpen(true);
+      setForceOpenNewIdea(false);
+    }
+  }, [forceOpenNewIdea]);
 
   const loadIdeas = () => {
     const list = db.getIdeas();
@@ -155,9 +246,9 @@ export const IdeasSection: React.FC<IdeasSectionProps> = ({ onDataChange, refres
                   </div>
                 </div>
                 
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed overflow-hidden break-words select-text line-clamp-4 flex-1">
-                  {idea.content}
-                </p>
+                <div className="text-xs leading-relaxed overflow-hidden break-words select-text line-clamp-4 flex-1 space-y-1">
+                  {renderMarkdown(idea.content)}
+                </div>
                 
                 <div className="flex items-center gap-1.5 text-[10px] text-neutral-400 dark:text-neutral-500 font-medium mt-auto select-none">
                   <Calendar className="h-3 w-3" />

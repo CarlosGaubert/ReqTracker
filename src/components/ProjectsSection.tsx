@@ -18,12 +18,29 @@ import {
 interface ProjectsSectionProps {
   onDataChange: () => void;
   refreshTrigger: number;
+  selectedProjectId: string | null;
+  setSelectedProjectId: (id: string | null) => void;
+  forceOpenNewProject: boolean;
+  setForceOpenNewProject: (open: boolean) => void;
 }
 
-export const ProjectsSection: React.FC<ProjectsSectionProps> = ({ onDataChange, refreshTrigger }) => {
+export const ProjectsSection: React.FC<ProjectsSectionProps> = ({ 
+  onDataChange, 
+  refreshTrigger,
+  selectedProjectId,
+  setSelectedProjectId,
+  forceOpenNewProject,
+  setForceOpenNewProject
+}) => {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (forceOpenNewProject) {
+      setIsModalOpen(true);
+      setForceOpenNewProject(false);
+    }
+  }, [forceOpenNewProject]);
   
   // Form states
   const [projectName, setProjectName] = useState('');
