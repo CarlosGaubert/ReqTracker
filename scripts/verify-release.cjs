@@ -58,8 +58,8 @@ if (!tauriConfig.plugins || !tauriConfig.plugins.updater) {
 }
 
 const updater = tauriConfig.plugins.updater;
-if (!updater.pubkey || updater.pubkey.length !== 56) {
-  console.error('❌ Error de Configuración: La clave pública "pubkey" del updater debe tener exactamente 56 caracteres base64.');
+if (!updater.pubkey || updater.pubkey.length !== 152) {
+  console.error('❌ Error de Configuración: La clave pública "pubkey" del updater debe tener exactamente 152 caracteres base64.');
   process.exit(1);
 }
 
