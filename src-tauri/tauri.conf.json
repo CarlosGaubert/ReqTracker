@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "tauri-app",
-  "version": "1.2.5",
-  "identifier": "com.carlosgaubert.tauri-app",
+  "productName": "ReqTracker",
+  "version": "1.2.6",
+  "identifier": "com.carlosgaubert.reqtracker",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,9 +12,9 @@
   "app": {
     "windows": [
       {
-        "title": "tauri-app",
-        "width": 800,
-        "height": 600
+        "title": "ReqTracker",
+        "width": 1000,
+        "height": 700
       }
     ],
     "security": {
