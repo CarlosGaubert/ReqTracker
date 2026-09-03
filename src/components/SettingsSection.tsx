@@ -175,40 +175,45 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-5 h-full overflow-y-auto pr-1 pb-8">
-      {/* 1. Supabase Credentials Card */}
-      <div className="flex flex-col gap-2">
-        <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">Configuración de Base de Datos en la Nube</h3>
-        <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
-          Conecta tu propio proyecto de <strong>Supabase</strong> para activar la sincronización en la nube de tus proyectos, requerimientos e ideas de forma transparente.
+    <div className="flex flex-col gap-6 max-w-[760px] pb-12">
+      {/* 1. Header & Title */}
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50 font-sans">Ajustes & Sincronización</h2>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed">
+          Conecta directamente con tu propia base de datos Supabase para mantener tus datos sincronizados entre todos tus dispositivos.
         </p>
+      </div>
 
-        {!notificationsAllowed && (
-          <Card className="border-amber-500/25 bg-amber-500/5 text-amber-600 dark:text-amber-400 shadow-none">
-            <CardContent className="p-3.5 flex items-start gap-2.5 text-xs leading-relaxed font-medium">
-              <AlertTriangle className="h-4.5 w-4.5 flex-shrink-0 mt-0.5 text-amber-500" />
-              <div className="space-y-1">
-                <span className="font-bold block">Notificaciones del Sistema Desactivadas</span>
-                <span>ReqTracker necesita permisos de notificaciones para alertarte cuando un requerimiento esté por vencer. Por favor, habilítalas en la configuración de notificaciones de tu sistema operativo.</span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+      <Separator className="bg-neutral-200 dark:bg-neutral-800" />
 
+      {/* 1.1 Permisos de Notificaciones */}
+      {!notificationsAllowed && (
+        <Card className="border-amber-500/20 bg-amber-500/5 text-amber-700 dark:text-amber-400 shadow-none rounded-xl">
+          <CardContent className="p-4 flex items-center gap-3 text-sm font-medium">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+            <div className="flex-1">
+              <span className="font-bold">Notificaciones deshabilitadas:</span> Permite las notificaciones del sistema para que las alarmas de tus requerimientos puedan avisarte oportunamente.
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Configuration Card */}
+      <div className="space-y-4">
         {authError && (
-          <Card className="border-red-500/25 bg-red-500/5 text-red-600 dark:text-red-400 shadow-none">
-            <CardContent className="p-3.5 flex items-center gap-2.5 text-xs font-medium">
-              <AlertTriangle className="h-4.5 w-4.5 flex-shrink-0" />
+          <Card className="border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400 shadow-none rounded-xl">
+            <CardContent className="p-4 flex items-center gap-3 text-sm font-medium">
+              <AlertTriangle className="h-5 w-5 flex-shrink-0" />
               <span>{authError}</span>
             </CardContent>
           </Card>
         )}
 
         {!isConfigSaved ? (
-          <form onSubmit={handleSaveConfig} className="space-y-4 border border-neutral-200 dark:border-neutral-800 p-4 rounded-xl bg-white dark:bg-neutral-900/10">
-            <div className="space-y-1.5">
-              <Label htmlFor="sb-url" className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5">
-                <Key className="h-3.5 w-3.5" />
+          <form onSubmit={handleSaveConfig} className="space-y-4.5 border border-neutral-200 dark:border-neutral-800 p-5 rounded-2xl bg-white/70 dark:bg-neutral-900/30">
+            <div className="space-y-2">
+              <Label htmlFor="sb-url" className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 flex items-center gap-2">
+                <Key className="h-4 w-4 text-neutral-400" />
                 <span>Supabase Project URL</span>
               </Label>
               <Input
@@ -219,12 +224,12 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                 placeholder="Ej. https://xxxxxx.supabase.co"
                 required
                 disabled={isTestingConnection}
-                className="bg-neutral-50 dark:bg-neutral-900/50 border-neutral-200 dark:border-neutral-800 focus-visible:ring-emerald-500 text-sm h-9"
+                className="bg-neutral-50 dark:bg-neutral-900/50 border-neutral-200 dark:border-neutral-800 focus-visible:ring-emerald-500 text-sm h-10 rounded-xl"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="sb-key" className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5">
-                <Key className="h-3.5 w-3.5" />
+            <div className="space-y-2">
+              <Label htmlFor="sb-key" className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 flex items-center gap-2">
+                <Key className="h-4 w-4 text-neutral-400" />
                 <span>Supabase Project Anon Key</span>
               </Label>
               <Input
@@ -235,10 +240,10 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                 placeholder="Ej. eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                 required
                 disabled={isTestingConnection}
-                className="bg-neutral-50 dark:bg-neutral-900/50 border-neutral-200 dark:border-neutral-800 focus-visible:ring-emerald-500 text-sm h-9"
+                className="bg-neutral-50 dark:bg-neutral-900/50 border-neutral-200 dark:border-neutral-800 focus-visible:ring-emerald-500 text-sm h-10 rounded-xl"
               />
             </div>
-            <Button type="submit" className="h-9 gap-1.5" disabled={isTestingConnection}>
+            <Button type="submit" className="h-10 px-5 text-sm font-semibold gap-2 rounded-xl shadow-sm" disabled={isTestingConnection}>
               {isTestingConnection ? (
                 <>
                   <RefreshCw className="h-4 w-4 animate-spin" />
@@ -253,22 +258,22 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
             </Button>
           </form>
         ) : (
-          <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/10 shadow-none">
-            <CardContent className="p-4 flex flex-col gap-4">
+          <Card className="border border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/30 shadow-sm rounded-2xl">
+            <CardContent className="p-5 flex flex-col gap-4.5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <div className="flex items-center gap-2 text-base font-bold text-emerald-600 dark:text-emerald-400">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span>Base de Datos Conectada</span>
                   </div>
-                  <p className="text-[11px] text-neutral-450 dark:text-neutral-550 mt-1 truncate max-w-[400px]">
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 truncate max-w-[450px]">
                     URL: {config.url}
                   </p>
                 </div>
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="h-8 border-red-500/20 text-red-500 dark:text-red-400 hover:bg-red-500/5 hover:text-red-600 dark:hover:text-red-300"
+                  className="h-8.5 px-3 text-xs font-semibold rounded-lg border-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300"
                   onClick={handleClearConfig}
                 >
                   Desconectar
@@ -279,26 +284,26 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <div className="text-xs font-semibold text-neutral-800 dark:text-neutral-250">Sincronización Directa</div>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed max-w-[420px]">
+                  <div className="text-sm font-bold text-neutral-900 dark:text-neutral-100">Sincronización Directa</div>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed max-w-[460px]">
                     Sincroniza tus proyectos, tareas e ideas locales directamente con tu base de datos remota.
                   </p>
                 </div>
                 <Button 
-                  size="sm"
-                  className="h-8 gap-1.5"
+                  size="sm" 
+                  className="h-9 px-4 text-xs font-semibold gap-2 rounded-xl shadow-sm"
                   onClick={onSync} 
                   disabled={isSyncing}
                 >
-                  <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
                   <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar Ahora'}</span>
                 </Button>
               </div>
 
               {syncError && (
-                <Card className="border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400 shadow-none mt-1">
-                  <CardContent className="p-3 flex items-center gap-2 text-xs font-medium">
-                    <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                <Card className="border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400 shadow-none mt-1 rounded-xl">
+                  <CardContent className="p-3.5 flex items-center gap-2.5 text-xs font-medium">
+                    <AlertTriangle className="h-4.5 w-4.5 flex-shrink-0" />
                     <span>Error al sincronizar: {syncError}</span>
                   </CardContent>
                 </Card>
@@ -309,38 +314,38 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
       </div>
 
       {/* 2. Setup Help Card */}
-      <Card className="border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/5 shadow-none p-4 flex flex-col md:flex-row gap-4">
-        <HelpCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
-        <div className="space-y-2 flex-1">
-          <h4 className="font-semibold text-sm text-neutral-800 dark:text-neutral-200">¿Cómo crear un proyecto gratis en Supabase?</h4>
-          <ol className="list-decimal pl-4 text-xs text-neutral-500 dark:text-neutral-400 space-y-2 leading-relaxed">
-            <li>Ve a <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-emerald-600 dark:text-emerald-400 hover:underline">supabase.com</a> y crea una cuenta gratis.</li>
+      <Card className="border border-neutral-200 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-900/10 shadow-none p-5 rounded-2xl flex flex-col md:flex-row gap-4.5">
+        <HelpCircle className="h-7 w-7 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
+        <div className="space-y-2.5 flex-1">
+          <h4 className="font-bold text-base text-neutral-900 dark:text-neutral-100">¿Cómo crear un proyecto gratis en Supabase?</h4>
+          <ol className="list-decimal pl-4 text-sm text-neutral-600 dark:text-neutral-300 space-y-2 leading-relaxed">
+            <li>Ve a <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-emerald-600 dark:text-emerald-400 hover:underline font-semibold">supabase.com</a> y crea una cuenta gratis.</li>
             <li>Crea un nuevo proyecto y copia la <strong>URL del proyecto</strong> y la <strong>Clave Anon (Anon Key)</strong> en la pestaña API Settings.</li>
             <li>Conecta tu base de datos aquí introduciendo esos datos.</li>
             <li>Crea tres tablas en tu editor SQL de Supabase ejecutando este script simplificado:
-              <div className="relative group mt-2 border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden bg-neutral-100 dark:bg-neutral-900/60 max-w-full">
-                <div className="absolute right-2 top-2 z-10">
+              <div className="relative group mt-2.5 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-900/70 max-w-full">
+                <div className="absolute right-2.5 top-2.5 z-10">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-7 px-2.5 text-xs gap-1 border-neutral-350 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-900 shadow-none"
+                    className="h-8 px-3 text-xs gap-1.5 border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-lg shadow-sm"
                     onClick={handleCopySQL}
                   >
                     {copied ? (
                       <>
-                        <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">Copiado</span>
+                        <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">Copiado</span>
                       </>
                     ) : (
                       <>
-                        <Copy className="h-3.5 w-3.5" />
-                        <span className="font-medium">Copiar</span>
+                        <Copy className="h-4 w-4" />
+                        <span className="font-semibold">Copiar SQL</span>
                       </>
                     )}
                   </Button>
                 </div>
-                <pre className="p-4 text-[10px] font-mono text-neutral-600 dark:text-neutral-300 overflow-auto max-h-[300px] leading-relaxed pt-11 max-w-full">
+                <pre className="p-4 text-xs font-mono text-neutral-700 dark:text-neutral-200 overflow-auto max-h-[320px] leading-relaxed pt-12 max-w-full">
                   {highlightSQL(SQL_SCRIPT)}
                 </pre>
               </div>

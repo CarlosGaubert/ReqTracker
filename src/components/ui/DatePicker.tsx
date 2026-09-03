@@ -93,44 +93,44 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
   return (
     <div className="relative w-full" ref={containerRef}>
       <div 
-        className="flex items-center gap-2.5 border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/30 rounded-lg px-3 py-2 text-sm h-9 cursor-pointer select-none focus-within:ring-2 focus-within:ring-emerald-500 transition-all hover:bg-neutral-100/50 dark:hover:bg-neutral-800/20"
+        className="flex items-center gap-2.5 border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/40 rounded-xl px-3.5 py-2.5 text-sm h-10 cursor-pointer select-none focus-within:ring-2 focus-within:ring-emerald-500 transition-all hover:bg-neutral-100/60 dark:hover:bg-neutral-800/30"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <CalendarIcon className="h-4 w-4 text-neutral-450 dark:text-neutral-500" />
-        <span className={`text-xs font-medium ${value ? 'text-neutral-800 dark:text-neutral-200' : 'text-neutral-400 dark:text-neutral-500'}`}>
+        <CalendarIcon className="h-4.5 w-4.5 text-neutral-400" />
+        <span className={`text-sm font-medium ${value ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-400 dark:text-neutral-500'}`}>
           {displayValue || 'Selecciona una fecha de vencimiento...'}
         </span>
       </div>
 
       {isOpen && (
-        <div className="absolute left-0 mt-2 z-50 p-4 border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 rounded-xl shadow-lg w-[280px] animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="absolute left-0 mt-2 z-50 p-4 border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 rounded-2xl shadow-xl w-[300px] animate-in fade-in slide-in-from-top-1 duration-150">
           {/* Header */}
           <div className="flex items-center justify-between mb-3.5 select-none">
             <Button 
               type="button" 
               variant="ghost" 
               size="icon" 
-              className="h-7 w-7 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-md"
+              className="h-8 w-8 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-lg"
               onClick={handlePrevMonth}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4.5 w-4.5" />
             </Button>
-            <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-200">
+            <span className="text-sm font-bold text-neutral-800 dark:text-neutral-100">
               {months[currentMonth]} {currentYear}
             </span>
             <Button 
               type="button" 
               variant="ghost" 
               size="icon" 
-              className="h-7 w-7 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-md"
+              className="h-8 w-8 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-lg"
               onClick={handleNextMonth}
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4.5 w-4.5" />
             </Button>
           </div>
 
           {/* Weekdays */}
-          <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-neutral-400 dark:text-neutral-600 mb-2 select-none uppercase tracking-wider">
+          <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-neutral-500 dark:text-neutral-400 mb-2 select-none uppercase tracking-wider">
             <span>Lu</span>
             <span>Ma</span>
             <span>Mi</span>
@@ -144,7 +144,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
           <div className="grid grid-cols-7 gap-1">
             {daysGrid.map((day, idx) => {
               if (day === null) {
-                return <div key={idx} className="h-7 w-7" />;
+                return <div key={idx} className="h-8 w-8" />;
               }
 
               const formattedMonth = String(currentMonth + 1).padStart(2, '0');
@@ -161,12 +161,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
                   key={idx}
                   type="button"
                   onClick={() => handleSelectDay(day)}
-                  className={`h-7 w-7 rounded-lg text-xs font-medium flex items-center justify-center transition-all ${
+                  className={`h-8 w-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all ${
                     isSelected
-                      ? 'bg-emerald-500 text-white font-bold hover:bg-emerald-600'
+                      ? 'bg-emerald-500 text-white font-bold hover:bg-emerald-600 shadow-sm'
                       : isToday
                       ? 'border border-emerald-500/50 text-emerald-600 dark:text-emerald-400 font-bold hover:bg-neutral-100 dark:hover:bg-neutral-900'
-                      : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-900'
+                      : 'text-neutral-800 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-900'
                   }`}
                 >
                   {day}

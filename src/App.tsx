@@ -417,16 +417,16 @@ function App() {
       {activeChallenge && (
         <div className="absolute top-4 right-4 z-50 group flex flex-col items-end">
           {/* Main pill-shaped clock widget */}
-          <div className="backdrop-blur-md bg-neutral-900/85 border border-neutral-800 text-neutral-50 px-4 py-2 rounded-full shadow-2xl flex items-center gap-3 select-none transition-all duration-200 hover:scale-102 hover:border-emerald-500/30 cursor-default">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
+          <div className="backdrop-blur-md bg-neutral-900/90 border border-neutral-750 text-neutral-50 px-4.5 py-2.5 rounded-full shadow-2xl flex items-center gap-3 select-none transition-all duration-200 hover:scale-102 hover:border-emerald-500/40 cursor-default">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
             
-            <div className="flex flex-col text-right leading-none max-w-[120px] truncate">
-              <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-wide truncate">{activeChallenge.projectName}</span>
+            <div className="flex flex-col text-right leading-none max-w-[140px] truncate">
+              <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider truncate">{activeChallenge.projectName}</span>
             </div>
             
-            <span className="border-l border-neutral-800 h-4.5"></span>
+            <span className="border-l border-neutral-700 h-5"></span>
             
-            <span className="font-mono text-sm font-extrabold tabular-nums tracking-tighter text-emerald-400">
+            <span className="font-mono text-base font-black tabular-nums tracking-tight text-emerald-400">
               {(() => {
                 const secs = activeChallenge.remainingSeconds;
                 const hrs = Math.floor(secs / 3600);
@@ -442,24 +442,24 @@ function App() {
           </div>
 
           {/* Hover Card Panel */}
-          <div className="absolute right-0 top-[42px] mt-1.5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200 translate-y-1 group-hover:translate-y-0 z-50">
-            <Card className="w-[280px] border border-neutral-250 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-2xl p-4 rounded-xl flex flex-col gap-3">
-              <div className="space-y-0.5">
-                <span className="text-[9px] font-bold text-neutral-450 dark:text-neutral-550 uppercase tracking-wider">
+          <div className="absolute right-0 top-[48px] mt-1.5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200 translate-y-1 group-hover:translate-y-0 z-50">
+            <Card className="w-[320px] border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-2xl p-4.5 rounded-2xl flex flex-col gap-3.5">
+              <div className="space-y-1">
+                <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
                   Requerimiento Enfocado
                 </span>
-                <h5 className="font-semibold text-xs text-neutral-800 dark:text-neutral-200 leading-snug break-words">
+                <h5 className="font-bold text-sm text-neutral-900 dark:text-neutral-100 leading-snug break-words">
                   {activeChallenge.requirementTitle}
                 </h5>
               </div>
               
-              <Separator className="bg-neutral-200 dark:bg-neutral-850" />
+              <Separator className="bg-neutral-200 dark:bg-neutral-800" />
               
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7 text-[10px] px-2 flex-1 border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-900"
+                  className="h-8 text-xs font-semibold px-2.5 flex-1 border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-lg"
                   onClick={handlePauseToggle}
                 >
                   {activeChallenge.isPaused ? 'Reanudar' : 'Pausar'}
@@ -467,14 +467,14 @@ function App() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7 text-[10px] px-2 flex-1 text-red-500 border-red-500/10 hover:bg-red-500/5 hover:border-red-500/20"
+                  className="h-8 text-xs font-semibold px-2.5 flex-1 text-red-600 dark:text-red-400 border-red-500/20 hover:bg-red-500/10 rounded-lg"
                   onClick={handleCancelChallenge}
                 >
                   Terminar
                 </Button>
                 <Button
                   size="sm"
-                  className="h-7 text-[10px] px-2 flex-1 text-white bg-emerald-500 hover:bg-emerald-600 border-none font-semibold shadow-sm"
+                  className="h-8 text-xs font-bold px-2.5 flex-1 text-white bg-emerald-500 hover:bg-emerald-600 border-none rounded-lg shadow-sm"
                   onClick={() => handleCompleteTask(activeChallenge.requirementId)}
                 >
                   Completar

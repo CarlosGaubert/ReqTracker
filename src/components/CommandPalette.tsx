@@ -196,43 +196,43 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center pt-[15vh] backdrop-blur-[2px] p-4 select-none animate-in fade-in duration-200"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 w-[540px] rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[440px] animate-in zoom-in-95 slide-in-from-top-4 duration-200">
+      <div className="bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 w-[580px] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[480px] animate-in zoom-in-95 slide-in-from-top-4 duration-200">
         
         {/* Search Input Bar */}
-        <div className="flex items-center gap-3 px-4 border-b border-neutral-150 dark:border-neutral-850 h-12 flex-shrink-0">
-          <Search className="h-4.5 w-4.5 text-neutral-400 dark:text-neutral-500" />
+        <div className="flex items-center gap-3.5 px-5 border-b border-neutral-200 dark:border-neutral-800 h-14 flex-shrink-0">
+          <Search className="h-5 w-5 text-neutral-400" />
           <input
             ref={inputRef}
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Busca comandos, proyectos, notas o ejecuta acciones..."
-            className="w-full bg-transparent border-none text-sm text-neutral-800 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-0 py-2"
+            className="w-full bg-transparent border-none text-base font-medium text-neutral-900 dark:text-neutral-50 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-0 py-2.5"
           />
-          <Badge variant="outline" className="text-[10px] text-neutral-400 dark:text-neutral-500 border-neutral-200 dark:border-neutral-800 select-none shadow-none font-medium h-5">
+          <Badge variant="outline" className="text-xs text-neutral-500 dark:text-neutral-400 border-neutral-200 dark:border-neutral-800 select-none shadow-none font-semibold h-6 px-2 rounded-md">
             ESC
           </Badge>
         </div>
 
         {/* Results Container */}
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="flex-1 overflow-y-auto p-2.5">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center text-neutral-400 dark:text-neutral-500 gap-2">
-              <Search className="h-8 w-8 text-neutral-300 dark:text-neutral-600" />
-              <p className="text-xs font-medium">No se encontraron resultados para "{search}"</p>
+              <Search className="h-9 w-9 text-neutral-300 dark:text-neutral-600" />
+              <p className="text-sm font-medium">No se encontraron resultados para "{search}"</p>
             </div>
           ) : (
             categories.map(cat => {
               const categoryItems = items.filter(item => item.category === cat);
               return (
-                <div key={cat} className="mb-3 last:mb-1">
+                <div key={cat} className="mb-3.5 last:mb-1">
                   {/* Category Title */}
-                  <h5 className="text-[9px] font-bold text-neutral-400 dark:text-neutral-600 uppercase tracking-wider px-3 mb-1 select-none">
+                  <h5 className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider px-3 mb-1.5 select-none">
                     {cat}
                   </h5>
 
                   {/* Category Items */}
-                  <div className="flex flex-col gap-0.5">
+                  <div className="flex flex-col gap-1">
                     {categoryItems.map(item => {
                       const currentGlobalIndex = globalItemIndex++;
                       const isHighlighted = selectedIndex === currentGlobalIndex;
@@ -240,26 +240,26 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                       return (
                         <div
                           key={item.id}
-                          className={`flex items-center gap-3 px-3 py-2 text-xs rounded-lg cursor-pointer transition-colors duration-150 ${
+                          className={`flex items-center gap-3 px-3.5 py-2.5 text-sm rounded-xl cursor-pointer transition-colors duration-150 ${
                             isHighlighted
-                              ? 'bg-neutral-100 dark:bg-neutral-900 text-neutral-950 dark:text-neutral-50 font-medium'
-                              : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-900/30'
+                              ? 'bg-neutral-100 dark:bg-neutral-900 text-neutral-950 dark:text-neutral-50 font-bold shadow-sm'
+                              : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-900/40'
                           }`}
                           onClick={() => {
                             item.handler();
                             onClose();
                           }}
                         >
-                          <div className={`p-1.5 rounded-md ${
+                          <div className={`p-1.5 rounded-lg ${
                             isHighlighted 
-                              ? 'bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-850 shadow-sm' 
-                              : 'bg-neutral-50 dark:bg-neutral-900/40 border border-transparent'
+                              ? 'bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 shadow-sm' 
+                              : 'bg-neutral-100/60 dark:bg-neutral-900/40 border border-transparent'
                           }`}>
                             {item.icon}
                           </div>
-                          <span className="flex-1 truncate">{item.title}</span>
+                          <span className="flex-1 truncate font-semibold">{item.title}</span>
                           {isHighlighted && (
-                            <span className="text-[10px] text-neutral-400 dark:text-neutral-500 select-none">
+                            <span className="text-xs text-neutral-400 dark:text-neutral-500 font-bold select-none">
                               Enter ↵
                             </span>
                           )}

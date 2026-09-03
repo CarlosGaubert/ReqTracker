@@ -91,14 +91,14 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
   const selectedProject = projects.find(p => p.id === selectedProjectId);
 
   return (
-    <div className="flex h-full w-full overflow-hidden gap-4">
+    <div className="flex h-full w-full overflow-hidden gap-5">
       {/* Left panel: List of projects */}
-      <div className="w-[320px] flex-shrink-0 border border-neutral-200 dark:border-neutral-800 bg-neutral-50/30 dark:bg-neutral-950/20 p-4 rounded-xl flex flex-col gap-4 overflow-y-auto">
+      <div className="w-[340px] flex-shrink-0 border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/40 p-4.5 rounded-2xl flex flex-col gap-4 overflow-y-auto">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">Proyectos</h3>
+          <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100">Proyectos</h3>
           <Button 
             size="sm" 
-            className="h-8 gap-1"
+            className="h-8.5 px-3 text-xs font-semibold gap-1.5 rounded-lg shadow-sm"
             onClick={() => setIsModalOpen(true)}
           >
             <Plus className="h-4 w-4" />
@@ -107,33 +107,33 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
         </div>
 
         {projects.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 px-4 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-lg text-center gap-3">
-            <Folder className="h-8 w-8 text-neutral-400 dark:text-neutral-500" />
+          <div className="flex flex-col items-center justify-center py-12 px-4 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-xl text-center gap-3">
+            <Folder className="h-9 w-9 text-neutral-400 dark:text-neutral-500" />
             <p className="text-xs text-neutral-500 dark:text-neutral-400">No tienes proyectos registrados.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-3">
             {projects.map(project => (
               <Card
                 key={project.id}
-                className={`group cursor-pointer transition-all duration-200 hover:bg-neutral-100/50 dark:hover:bg-neutral-900/40 border shadow-none select-none relative ${
+                className={`group cursor-pointer transition-all duration-200 hover:bg-neutral-100/60 dark:hover:bg-neutral-900/50 border shadow-sm select-none relative rounded-xl ${
                   selectedProjectId === project.id 
-                    ? 'border-emerald-500/50 bg-emerald-50/5 dark:bg-emerald-950/5' 
-                    : 'border-neutral-200 dark:border-neutral-800 bg-transparent'
+                    ? 'border-emerald-500 bg-emerald-50/10 dark:bg-emerald-950/20' 
+                    : 'border-neutral-200 dark:border-neutral-800 bg-white/40 dark:bg-transparent'
                 }`}
                 onClick={() => setSelectedProjectId(project.id)}
               >
-                <CardContent className="p-3.5 flex flex-col gap-1.5">
+                <CardContent className="p-4 flex flex-col gap-2">
                   <div className="flex items-start justify-between gap-2">
-                    <h4 className={`font-semibold text-sm truncate pr-4 ${
-                      selectedProjectId === project.id ? 'text-emerald-600 dark:text-emerald-400' : 'text-neutral-800 dark:text-neutral-250'
+                    <h4 className={`font-bold text-sm truncate pr-5 ${
+                      selectedProjectId === project.id ? 'text-emerald-600 dark:text-emerald-400' : 'text-neutral-900 dark:text-neutral-100'
                     }`}>
                       {project.name}
                     </h4>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute right-2 top-2 h-6 w-6 text-neutral-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute right-2.5 top-2.5 h-6.5 w-6.5 rounded-md text-neutral-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={(e) => handleDeleteProject(project.id, e)}
                       title="Eliminar proyecto"
                     >
@@ -141,12 +141,12 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                     </Button>
                   </div>
                   {project.description && (
-                    <p className="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-neutral-600 dark:text-neutral-300 line-clamp-2 leading-relaxed">
                       {project.description}
                     </p>
                   )}
-                  <div className="flex items-center gap-1.5 text-[10px] text-neutral-400 dark:text-neutral-500 font-medium">
-                    <Calendar className="h-3 w-3" />
+                  <div className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 font-medium">
+                    <Calendar className="h-3.5 w-3.5 text-neutral-400" />
                     <span>{new Date(project.created_at).toLocaleDateString()}</span>
                   </div>
                 </CardContent>
@@ -157,7 +157,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
       </div>
 
       {/* Right panel: Project Details */}
-      <div className="flex-1 flex flex-col overflow-hidden border border-neutral-200 dark:border-neutral-800 bg-neutral-50/30 dark:bg-neutral-950/20 p-4 rounded-xl">
+      <div className="flex-1 flex flex-col overflow-hidden border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/40 p-5 rounded-2xl">
         {selectedProject ? (
           <RequirementsSection
             project={selectedProject}
@@ -166,12 +166,12 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8 gap-4">
-            <div className="p-4 bg-neutral-100 dark:bg-neutral-900 rounded-full text-neutral-400 dark:text-neutral-500">
-              <Folder className="h-10 w-10" />
+            <div className="p-4.5 bg-neutral-100 dark:bg-neutral-900 rounded-full text-neutral-400 dark:text-neutral-500">
+              <Folder className="h-12 w-12 text-emerald-500/70" />
             </div>
-            <div className="max-w-[420px] space-y-1.5">
-              <h3 className="font-semibold text-lg text-neutral-800 dark:text-neutral-200">Selecciona un Proyecto</h3>
-              <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            <div className="max-w-[420px] space-y-2">
+              <h3 className="font-bold text-lg text-neutral-900 dark:text-neutral-100">Selecciona un Proyecto</h3>
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">
                 Selecciona un proyecto de la lista izquierda o crea uno nuevo para empezar a gestionar sus requerimientos y tareas.
               </p>
             </div>
@@ -181,13 +181,13 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
 
       {/* Modal for creating project */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[425px] border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50">
+        <DialogContent className="sm:max-w-[480px] border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold tracking-tight">Nuevo Proyecto</DialogTitle>
+            <DialogTitle className="text-xl font-bold tracking-tight">Nuevo Proyecto</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleCreateProject} className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="p-name" className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+          <form onSubmit={handleCreateProject} className="space-y-4.5 pt-2">
+            <div className="space-y-2">
+              <Label htmlFor="p-name" className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
                 Nombre del Proyecto
               </Label>
               <Input
@@ -197,11 +197,11 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                 placeholder="Ej. Rediseño de Web, Migración de Base de Datos"
                 required
                 autoFocus
-                className="bg-neutral-50 dark:bg-neutral-900/50 border-neutral-200 dark:border-neutral-800 focus-visible:ring-emerald-500"
+                className="bg-neutral-50 dark:bg-neutral-900/50 border-neutral-200 dark:border-neutral-800 focus-visible:ring-emerald-500 text-sm h-10 rounded-xl"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="p-desc" className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+            <div className="space-y-2">
+              <Label htmlFor="p-desc" className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
                 Descripción (Opcional)
               </Label>
               <Textarea
@@ -210,14 +210,14 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                 onChange={(e) => setProjectDesc(e.target.value)}
                 placeholder="Añade un breve resumen de los objetivos de este proyecto..."
                 rows={3}
-                className="bg-neutral-50 dark:bg-neutral-900/50 border-neutral-200 dark:border-neutral-800 focus-visible:ring-emerald-500 resize-none"
+                className="bg-neutral-50 dark:bg-neutral-900/50 border-neutral-200 dark:border-neutral-800 focus-visible:ring-emerald-500 resize-none text-sm rounded-xl"
               />
             </div>
-            <DialogFooter className="pt-2 gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+            <DialogFooter className="pt-2 gap-2.5">
+              <Button type="button" variant="outline" className="rounded-xl h-10 px-4 font-semibold" onClick={() => setIsModalOpen(false)}>
                 Cancelar
               </Button>
-              <Button type="submit">
+              <Button type="submit" className="rounded-xl h-10 px-4 font-semibold shadow-sm">
                 Crear Proyecto
               </Button>
             </DialogFooter>

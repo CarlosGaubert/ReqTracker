@@ -197,13 +197,13 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-4 h-full">
+    <div className="flex flex-col gap-4.5 h-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-neutral-800 dark:text-neutral-50">{project.name}</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">{project.name}</h2>
           {project.description && (
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed max-w-[640px]">
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed max-w-[680px]">
               {project.description}
             </p>
           )}
@@ -211,28 +211,28 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
         
         <div className="flex items-center gap-3.5 w-full sm:w-auto justify-between sm:justify-end">
           {/* View Toggle */}
-          <div className="flex items-center border border-neutral-200 dark:border-neutral-800 rounded-lg p-0.5 bg-neutral-100/50 dark:bg-neutral-900/50">
+          <div className="flex items-center border border-neutral-200 dark:border-neutral-800 rounded-xl p-1 bg-neutral-100/60 dark:bg-neutral-900/60">
             <Button
               variant="ghost"
               size="sm"
-              className={`h-7 px-2.5 text-xs gap-1 rounded-md ${viewMode === 'list' ? 'bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 shadow-sm font-semibold' : 'text-neutral-500 hover:text-neutral-800'}`}
+              className={`h-8 px-3 text-xs gap-1.5 rounded-lg ${viewMode === 'list' ? 'bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 shadow-sm font-bold' : 'text-neutral-500 hover:text-neutral-800'}`}
               onClick={() => setViewMode('list')}
             >
-              <List className="h-3.5 w-3.5" />
+              <List className="h-4 w-4" />
               <span className="hidden md:inline">Lista</span>
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              className={`h-7 px-2.5 text-xs gap-1 rounded-md ${viewMode === 'kanban' ? 'bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 shadow-sm font-semibold' : 'text-neutral-500 hover:text-neutral-800'}`}
+              className={`h-8 px-3 text-xs gap-1.5 rounded-lg ${viewMode === 'kanban' ? 'bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 shadow-sm font-bold' : 'text-neutral-500 hover:text-neutral-800'}`}
               onClick={() => setViewMode('kanban')}
             >
-              <Kanban className="h-3.5 w-3.5" />
+              <Kanban className="h-4 w-4" />
               <span className="hidden md:inline">Kanban</span>
             </Button>
           </div>
 
-          <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => setIsModalOpen(true)}>
+          <Button size="sm" className="h-9 px-4 text-sm font-semibold gap-2 rounded-xl shadow-sm" onClick={() => setIsModalOpen(true)}>
             <Plus className="h-4 w-4" />
             <span>Añadir Tarea</span>
           </Button>
@@ -243,27 +243,27 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
 
       {requirements.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center p-8 gap-4">
-          <div className="p-4 bg-neutral-100 dark:bg-neutral-900 rounded-full text-neutral-400 dark:text-neutral-500">
-            <AlertCircle className="h-10 w-10" />
+          <div className="p-4.5 bg-neutral-100 dark:bg-neutral-900 rounded-full text-neutral-400 dark:text-neutral-500">
+            <AlertCircle className="h-12 w-12 text-amber-500/70" />
           </div>
-          <div className="max-w-[320px] space-y-1.5">
-            <h3 className="font-semibold text-base text-neutral-800 dark:text-neutral-200">Sin Requerimientos</h3>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+          <div className="max-w-[340px] space-y-1.5">
+            <h3 className="font-bold text-lg text-neutral-900 dark:text-neutral-100">Sin Requerimientos</h3>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">
               No hay requerimientos ni tareas registradas para este proyecto. Crea uno nuevo para comenzar.
             </p>
           </div>
         </div>
       ) : viewMode === 'list' ? (
         /* LIST VIEW */
-        <div className="flex-1 flex flex-col gap-2.5 overflow-y-auto pr-1">
+        <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-1">
           {requirements.map(req => {
             const urgency = getUrgencyInfo(req);
             return (
               <div
                 key={req.id}
-                className={`flex items-start justify-between gap-4 p-4 border border-neutral-200 dark:border-neutral-800 rounded-xl transition-all duration-200 bg-white dark:bg-neutral-900/10 ${
+                className={`flex items-start justify-between gap-4.5 p-4.5 border border-neutral-200 dark:border-neutral-800 rounded-2xl transition-all duration-200 bg-white/70 dark:bg-neutral-900/30 shadow-sm ${
                   req.status === 'done' 
-                    ? 'opacity-50 bg-neutral-50/50 dark:bg-neutral-950/20' 
+                    ? 'opacity-60 bg-neutral-50/50 dark:bg-neutral-950/20' 
                     : urgency.className || 'hover:border-neutral-300 dark:hover:border-neutral-700'
                 }`}
               >
@@ -272,47 +272,47 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
                     id={`req-check-${req.id}`}
                     checked={req.status === 'done'}
                     onCheckedChange={() => handleToggleStatus(req)}
-                    className="h-5 w-5 border-neutral-300 dark:border-neutral-700 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500 cursor-pointer"
+                    className="h-5.5 w-5.5 rounded-lg border-neutral-300 dark:border-neutral-700 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500 cursor-pointer"
                   />
                 </div>
 
-                <div className="flex-1 flex flex-col gap-1.5 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h4 className={`font-semibold text-sm leading-none tracking-tight break-words select-text ${
-                      req.status === 'done' ? 'line-through text-neutral-400 dark:text-neutral-500' : 'text-neutral-800 dark:text-neutral-100'
+                <div className="flex-1 flex flex-col gap-2 min-w-0">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h4 className={`font-bold text-base leading-snug tracking-tight break-words select-text ${
+                      req.status === 'done' ? 'line-through text-neutral-400 dark:text-neutral-500' : 'text-neutral-900 dark:text-neutral-50'
                     }`}>
                       {req.title}
                     </h4>
                     {req.status === 'in-progress' && (
-                      <Badge variant="outline" className="h-4 border-amber-500/20 bg-amber-500/5 text-amber-600 dark:text-amber-400 text-[8px] py-0 px-1 font-bold uppercase select-none">
+                      <Badge variant="outline" className="h-5 border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] py-0.5 px-2 font-bold uppercase select-none rounded-md">
                         En Progreso
                       </Badge>
                     )}
                   </div>
                   {req.description && (
-                    <p className={`text-xs leading-relaxed break-words select-text ${
-                      req.status === 'done' ? 'text-neutral-400 dark:text-neutral-500' : 'text-neutral-550 dark:text-neutral-400'
+                    <p className={`text-sm leading-relaxed break-words select-text ${
+                      req.status === 'done' ? 'text-neutral-400 dark:text-neutral-500' : 'text-neutral-600 dark:text-neutral-300'
                     }`}>
                       {req.description}
                     </p>
                   )}
-                  <div className="flex flex-wrap items-center gap-2 mt-1">
-                    <Badge variant="outline" className="border-neutral-200 dark:border-neutral-800 text-neutral-550 dark:text-neutral-400 gap-1 py-0.5 px-2 select-none shadow-none text-[10px] font-medium bg-transparent">
-                      <Calendar className="h-3 w-3" />
+                  <div className="flex flex-wrap items-center gap-2.5 mt-1">
+                    <Badge variant="outline" className="border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-300 gap-1.5 py-1 px-2.5 select-none shadow-none text-xs font-semibold bg-transparent rounded-lg">
+                      <Calendar className="h-3.5 w-3.5 text-neutral-400" />
                       <span>Vence: {new Date(`${req.estimated_date}T00:00:00`).toLocaleDateString()}</span>
                     </Badge>
                     
                     <Button
                       variant="ghost"
                       size="sm"
-                      className={`h-5 border rounded-full px-2 py-0 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 text-[10px] font-medium gap-1 cursor-pointer transition-colors ${
+                      className={`h-6 border rounded-lg px-2.5 py-0 hover:bg-neutral-200/60 dark:hover:bg-neutral-800/60 text-xs font-semibold gap-1.5 cursor-pointer transition-colors ${
                         req.alarm_enabled 
                           ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300' 
                           : 'border-neutral-200 dark:border-neutral-800 text-neutral-400 dark:text-neutral-500 bg-transparent'
                       }`}
                       onClick={(e) => handleToggleAlarm(req, e)}
                     >
-                      {req.alarm_enabled ? <Bell className="h-3 w-3" /> : <BellOff className="h-3 w-3" />}
+                      {req.alarm_enabled ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
                       <span>{req.alarm_enabled ? 'Alarma activa' : 'Alarma apagada'}</span>
                     </Button>
                     {urgency.badge}
@@ -322,11 +322,11 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-neutral-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50"
+                  className="h-8 w-8 rounded-lg text-neutral-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 dark:hover:bg-red-500/20"
                   onClick={(e) => handleDeleteRequirement(req.id, e)}
                   title="Eliminar requerimiento"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4.5 w-4.5" />
                 </Button>
               </div>
             );
@@ -334,7 +334,7 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
         </div>
       ) : (
         /* KANBAN BOARD VIEW */
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 overflow-hidden h-full pb-2">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-5 overflow-hidden h-full pb-2">
           {(['todo', 'in-progress', 'done'] as const).map(status => {
             const statusTasks = requirements.filter(r => r.status === status);
             return (
@@ -342,23 +342,23 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
                 key={status}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => handleDrop(e, status)}
-                className="flex flex-col gap-3 border border-neutral-200 dark:border-neutral-800 bg-neutral-100/30 dark:bg-neutral-900/10 rounded-xl p-3.5 h-full overflow-hidden"
+                className="flex flex-col gap-3.5 border border-neutral-200 dark:border-neutral-800 bg-neutral-100/40 dark:bg-neutral-900/20 rounded-2xl p-4 h-full overflow-hidden"
               >
                 {/* Column Header */}
                 <div className="flex items-center justify-between px-1 flex-shrink-0">
-                  <h4 className="text-xs font-bold text-neutral-750 dark:text-neutral-300 uppercase tracking-wide select-none">
+                  <h4 className="text-xs font-bold text-neutral-600 dark:text-neutral-300 uppercase tracking-wider select-none">
                     {getStatusLabel(status)}
                   </h4>
-                  <Badge variant="secondary" className="h-5 w-5 p-0 flex items-center justify-center text-[10px] font-bold bg-neutral-200/60 dark:bg-neutral-800/60 text-neutral-600 dark:text-neutral-400 select-none shadow-none">
+                  <Badge variant="secondary" className="h-5.5 px-2 flex items-center justify-center text-xs font-bold bg-neutral-200/70 dark:bg-neutral-800/70 text-neutral-700 dark:text-neutral-300 select-none shadow-none rounded-md">
                     {statusTasks.length}
                   </Badge>
                 </div>
 
                 {/* Column Tasks Container */}
-                <div className="flex-1 flex flex-col gap-2.5 overflow-y-auto pr-0.5">
+                <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-0.5">
                   {statusTasks.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center p-4 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-lg text-neutral-400 dark:text-neutral-500 min-h-[120px]">
-                      <span className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 select-none">Columna vacía</span>
+                    <div className="flex-1 flex flex-col items-center justify-center text-center p-4 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-xl text-neutral-400 dark:border-neutral-800 text-neutral-400 dark:text-neutral-500 min-h-[120px]">
+                      <span className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 select-none">Columna vacía</span>
                     </div>
                   ) : (
                     statusTasks.map(task => {
@@ -368,52 +368,52 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
                           key={task.id}
                           draggable
                           onDragStart={(e) => handleDragStart(e, task.id)}
-                          className={`group cursor-grab active:cursor-grabbing border shadow-none select-none transition-all duration-200 hover:border-neutral-300 dark:hover:border-neutral-700 bg-white dark:bg-neutral-950 relative ${
+                          className={`group cursor-grab active:cursor-grabbing border shadow-sm select-none transition-all duration-200 rounded-xl hover:border-neutral-300 dark:hover:border-neutral-700 bg-white dark:bg-neutral-950 relative ${
                             task.status === 'done'
                               ? 'opacity-60 bg-neutral-50/50 dark:bg-neutral-950/20'
                               : urgency.className
                           }`}
                         >
-                          <CardContent className="p-3.5 flex flex-col gap-2">
+                          <CardContent className="p-4 flex flex-col gap-2.5">
                             <div className="flex items-start justify-between gap-2">
-                              <h5 className={`font-semibold text-xs leading-snug tracking-tight break-words pr-5 ${
-                                task.status === 'done' ? 'line-through text-neutral-400 dark:text-neutral-500' : 'text-neutral-850 dark:text-neutral-100'
+                              <h5 className={`font-bold text-sm leading-snug tracking-tight break-words pr-6 ${
+                                task.status === 'done' ? 'line-through text-neutral-400 dark:text-neutral-500' : 'text-neutral-900 dark:text-neutral-50'
                               }`}>
                                 {task.title}
                               </h5>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="absolute right-2 top-2 h-5 w-5 text-neutral-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="absolute right-2.5 top-2.5 h-6 w-6 rounded-md text-neutral-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity"
                                 onClick={(e) => handleDeleteRequirement(task.id, e)}
                               >
-                                <Trash2 className="h-3 w-3" />
+                                <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             </div>
-
                             {task.description && (
-                              <p className="text-[11px] text-neutral-500 dark:text-neutral-400 line-clamp-2 leading-relaxed break-words">
+                              <p className={`text-xs leading-relaxed break-words line-clamp-2 ${
+                                task.status === 'done' ? 'text-neutral-400 dark:text-neutral-500' : 'text-neutral-600 dark:text-neutral-300'
+                              }`}>
                                 {task.description}
                               </p>
                             )}
-
-                            <div className="flex flex-wrap items-center gap-1.5 mt-1 select-none">
-                              <Badge variant="outline" className="border-neutral-200 dark:border-neutral-800 text-neutral-450 dark:text-neutral-450 gap-1 py-0 px-1.5 h-5 shadow-none text-[9px] font-semibold bg-transparent">
-                                <Calendar className="h-3 w-3" />
+                            <div className="flex flex-wrap items-center gap-2 mt-1 select-none">
+                              <Badge variant="outline" className="border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-300 gap-1.5 py-0.5 px-2 h-5.5 shadow-none text-[11px] font-semibold bg-transparent rounded-md">
+                                <Calendar className="h-3.5 w-3.5 text-neutral-400" />
                                 <span>{new Date(`${task.estimated_date}T00:00:00`).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}</span>
                               </Badge>
                               
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className={`h-5 border rounded-full px-1.5 py-0 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 text-[9px] font-semibold gap-1 cursor-pointer transition-colors ${
+                                className={`h-5.5 border rounded-md px-2 py-0 hover:bg-neutral-200/60 dark:hover:bg-neutral-800/60 text-[11px] font-semibold gap-1 cursor-pointer transition-colors ${
                                   task.alarm_enabled 
                                     ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300' 
-                                    : 'border-neutral-200 dark:border-neutral-800 text-neutral-400 dark:text-neutral-550 bg-transparent'
+                                    : 'border-neutral-200 dark:border-neutral-800 text-neutral-400 dark:text-neutral-500 bg-transparent'
                                 }`}
                                 onClick={(e) => handleToggleAlarm(task, e)}
                               >
-                                {task.alarm_enabled ? <Bell className="h-2.5 w-2.5" /> : <BellOff className="h-2.5 w-2.5" />}
+                                {task.alarm_enabled ? <Bell className="h-3 w-3" /> : <BellOff className="h-3 w-3" />}
                               </Button>
                               
                               {urgency.badge}
@@ -432,13 +432,13 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
 
       {/* Modal for creating requirement */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[425px] border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50">
+        <DialogContent className="sm:max-w-[480px] border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold tracking-tight">Nuevo Requerimiento (To Do)</DialogTitle>
+            <DialogTitle className="text-xl font-bold tracking-tight">Nuevo Requerimiento (To Do)</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleCreateRequirement} className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="req-title" className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+          <form onSubmit={handleCreateRequirement} className="space-y-4.5 pt-2">
+            <div className="space-y-2">
+              <Label htmlFor="req-title" className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
                 Título del Requerimiento
               </Label>
               <Input
@@ -448,11 +448,11 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
                 placeholder="Ej. Diseñar mockups, Configurar base de datos..."
                 required
                 autoFocus
-                className="bg-neutral-50 dark:bg-neutral-900/50 border-neutral-200 dark:border-neutral-800 focus-visible:ring-emerald-500"
+                className="bg-neutral-50 dark:bg-neutral-900/50 border-neutral-200 dark:border-neutral-800 focus-visible:ring-emerald-500 text-sm h-10 rounded-xl"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="req-desc" className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+            <div className="space-y-2">
+              <Label htmlFor="req-desc" className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
                 Detalles / Descripción (Opcional)
               </Label>
               <Textarea
@@ -461,12 +461,12 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Especifica los detalles de lo que se debe hacer..."
                 rows={3}
-                className="bg-neutral-50 dark:bg-neutral-900/50 border-neutral-200 dark:border-neutral-800 focus-visible:ring-emerald-500 resize-none"
+                className="bg-neutral-50 dark:bg-neutral-900/50 border-neutral-200 dark:border-neutral-800 focus-visible:ring-emerald-500 resize-none text-sm rounded-xl"
               />
             </div>
             
-            <div className="space-y-1.5">
-              <Label htmlFor="req-date" className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+            <div className="space-y-2">
+              <Label htmlFor="req-date" className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
                 Fecha Estimada de Entrega (Vencimiento)
               </Label>
               <DatePicker
@@ -480,19 +480,19 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
                 id="req-alarm"
                 checked={alarmEnabled}
                 onCheckedChange={(checked) => setAlarmEnabled(!!checked)}
-                className="h-5 w-5 border-neutral-300 dark:border-neutral-700 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500 cursor-pointer"
+                className="h-5.5 w-5.5 rounded-lg border-neutral-300 dark:border-neutral-700 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500 cursor-pointer"
               />
-              <Label htmlFor="req-alarm" className="text-xs font-medium text-neutral-600 dark:text-neutral-300 flex items-center gap-2 cursor-pointer">
-                <Bell className={`h-4 w-4 ${alarmEnabled ? 'text-emerald-500' : 'text-neutral-400'}`} />
+              <Label htmlFor="req-alarm" className="text-sm font-semibold text-neutral-700 dark:text-neutral-200 flex items-center gap-2 cursor-pointer">
+                <Bell className={`h-4.5 w-4.5 ${alarmEnabled ? 'text-emerald-500' : 'text-neutral-400'}`} />
                 <span>Activar alarma recordatorio (3 días antes)</span>
               </Label>
             </div>
 
-            <DialogFooter className="pt-2 gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+            <DialogFooter className="pt-2 gap-2.5">
+              <Button type="button" variant="outline" className="rounded-xl h-10 px-4 font-semibold" onClick={() => setIsModalOpen(false)}>
                 Cancelar
               </Button>
-              <Button type="submit">
+              <Button type="submit" className="rounded-xl h-10 px-4 font-semibold shadow-sm">
                 Añadir Requerimiento
               </Button>
             </DialogFooter>
