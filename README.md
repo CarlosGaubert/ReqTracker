@@ -109,5 +109,29 @@ El proyecto incluye un flujo de trabajo CI/CD configurado en `.github/workflows/
 Cada vez que publiques una etiqueta (tag) de versión que coincida con el patrón `v*` (por ejemplo, `v1.0.0`), GitHub Actions construirá los instaladores nativos en paralelo para los siguientes sistemas operativos y creará un borrador de release (Draft Release) con las descargas listas:
 
 *   **🖥️ Windows:** Genera instaladores `.msi` (instalador estándar de Windows) y ejecutables `.exe`.
-*   **🍎 macOS:** Genera instaladores `.dmg` y paquetes de aplicación `.app` tanto para procesadores **Apple Silicon** (M1/M2/M3) como para **Intel**.
+*   **🍎 macOS:** Genera instaladores `.dmg` y paquetes de aplicación `.app` tanto para procesadores **Apple Silicon** (M1/M2/M3/M4) como para **Intel**.
 *   **🐧 Linux:** Genera instaladores Debian `.deb` y ejecutables portables `.AppImage`.
+
+---
+
+## 🍎 Nota importante para usuarios de macOS (Gatekeeper / Cuarentena)
+
+Al descargar la aplicación en macOS desde el navegador o GitHub Releases, el sistema operativo (Gatekeeper) puede mostrar el siguiente aviso:
+
+> **⚠️ "ReqTracker está dañado y no puede abrirse. Deberías moverlo al basurero."**
+
+Esto ocurre porque la aplicación es de código abierto y no cuenta con un certificado de pago de Apple Developer ($99/año). **El archivo no está dañado ni contiene malware.**
+
+### Solución rápida (1 solo comando):
+
+1. Arrastra `ReqTracker.app` a tu carpeta de **Aplicaciones** (`/Applications`).
+2. Abre la **Terminal** de tu Mac.
+3. Ejecuta el siguiente comando:
+   ```bash
+   xattr -cr /Applications/ReqTracker.app
+   ```
+4. ¡Listo! Abre la aplicación normalmente desde Aplicaciones o Spotlight.
+
+*Alternativa desde interfaz gráfica:*
+Ve a **Ajustes del Sistema** > **Privacidad y seguridad** > sección **Seguridad** y presiona **"Abrir de todos modos"** (*Open Anyway*).
+

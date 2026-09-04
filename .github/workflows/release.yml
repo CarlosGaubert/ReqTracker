@@ -62,7 +62,14 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: 'ReqTracker v__VERSION__'
-          releaseBody: 'Descarga el instalador correspondiente a tu sistema operativo para instalar ReqTracker.'
+          releaseBody: |
+            Descarga el instalador correspondiente a tu sistema operativo para instalar ReqTracker.
+
+            ### 🍎 Nota para usuarios de macOS:
+            Si macOS muestra el mensaje *"ReqTracker está dañado y no puede abrirse"*, ejecuta este comando en la Terminal tras mover la app a Aplicaciones:
+            ```bash
+            xattr -cr /Applications/ReqTracker.app
+            ```
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
