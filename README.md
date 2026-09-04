@@ -120,7 +120,7 @@ Al descargar la aplicación en macOS desde el navegador o GitHub Releases, el si
 
 > **⚠️ "ReqTracker está dañado y no puede abrirse. Deberías moverlo al basurero."**
 
-Esto ocurre porque la aplicación es de código abierto y no cuenta con un certificado de pago de Apple Developer ($99/año). **El archivo no está dañado ni contiene malware.**
+Esto ocurre porque la aplicación es de código abierto y no cuenta con un certificado de pago de Apple Developer. **El archivo no está dañado ni contiene malware.**
 
 ### Solución rápida (1 solo comando):
 
