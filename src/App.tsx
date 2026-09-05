@@ -21,6 +21,8 @@ function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncInterval, setSyncInterval] = useState<number>(() => db.getSyncInterval());
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(() => db.getLastSyncedAt());
   
   // Custom navigation and command palette states
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -168,27 +170,57 @@ function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Request notification permissions, start alarm checker
+  // Request notification permissions, start alarm checker, and setup continuous sync
   useEffect(() => {
     requestNotificationPermission().catch(console.error);
 
     // Start background alarm checker (runs once, then every 60s)
     startAlarmChecker(60000);
 
-    // Auto-sync periodically if online
-    const autoSyncInterval = setInterval(() => {
-      if (navigator.onLine && db.getSupabaseClient()) {
-        db.syncPendingQueue().then(() => {
+    // Continuous auto-sync timer
+    let autoSyncTimer: any = null;
+    if (syncInterval > 0) {
+      autoSyncTimer = setInterval(async () => {
+        if (navigator.onLine && db.getSupabaseClient()) {
+          const res = await db.safeSynchronize({ silent: true });
+          if (res.changed) {
+            setRefreshTrigger(prev => prev + 1);
+          }
+          setLastSyncedAt(db.getLastSyncedAt());
+        }
+      }, syncInterval * 1000);
+    }
+
+    // Auto-sync when window regains focus or tab becomes visible
+    const handleFocusSync = async () => {
+      if (document.visibilityState === 'visible' && navigator.onLine && db.getSupabaseClient()) {
+        const res = await db.safeSynchronize({ silent: true });
+        if (res.changed) {
           setRefreshTrigger(prev => prev + 1);
-        });
+        }
+        setLastSyncedAt(db.getLastSyncedAt());
       }
-    }, 300000); // Every 5 minutes
+    };
+
+    window.addEventListener('focus', handleFocusSync);
+    document.addEventListener('visibilitychange', handleFocusSync);
+
+    // Listen to real-time changes received from Supabase
+    const unsubscribeRemote = db.onRemoteChange((changed) => {
+      if (changed) {
+        setRefreshTrigger(prev => prev + 1);
+      }
+      setLastSyncedAt(db.getLastSyncedAt());
+    });
 
     return () => {
       stopAlarmChecker();
-      clearInterval(autoSyncInterval);
+      if (autoSyncTimer) clearInterval(autoSyncTimer);
+      window.removeEventListener('focus', handleFocusSync);
+      document.removeEventListener('visibilitychange', handleFocusSync);
+      unsubscribeRemote();
     };
-  }, []);
+  }, [syncInterval]);
 
   // Hotkey keyboard listener for Command Palette (Cmd+K / Ctrl+K)
   useEffect(() => {
@@ -231,19 +263,13 @@ function App() {
     setIsSyncing(true);
     setSyncError(null);
     try {
-      // First push any pending offline changes
-      const pushRes = await db.syncPendingQueue();
-      if (!pushRes.success) {
-        setSyncError(pushRes.error || 'Error al guardar los datos locales en Supabase.');
-        return;
+      const res = await db.safeSynchronize({ silent: false });
+      if (!res.success) {
+        setSyncError(res.error || 'Error al sincronizar con Supabase.');
       }
-      // Then pull recent data from the cloud
-      const pullRes = await db.pullAllData();
-      if (!pullRes.success) {
-        setSyncError(pullRes.error || 'Error al descargar los datos desde Supabase.');
-      }
+      setLastSyncedAt(db.getLastSyncedAt());
     } catch (e: any) {
-      console.error('Error durante la sincronización:', e);
+      console.error('Error durante la sincronización manual:', e);
       setSyncError(e.message || 'Error de red durante la sincronización.');
     } finally {
       setIsSyncing(false);
@@ -251,7 +277,13 @@ function App() {
     }
   };
 
+  const handleIntervalChange = (newInterval: number) => {
+    db.setSyncInterval(newInterval);
+    setSyncInterval(newInterval);
+  };
+
   const handleSessionChange = () => {
+    setSyncInterval(db.getSyncInterval());
     handleSync();
   };
 
@@ -309,6 +341,8 @@ function App() {
         toggleTheme={toggleTheme}
         onOpenSearch={() => setIsSearchOpen(true)}
         urgentCount={urgentCount}
+        lastSyncedAt={lastSyncedAt}
+        syncInterval={syncInterval}
       />
 
       <main className="main-content">
@@ -395,6 +429,9 @@ function App() {
               isSyncing={isSyncing}
               onSessionChange={handleSessionChange}
               syncError={syncError}
+              lastSyncedAt={lastSyncedAt}
+              syncInterval={syncInterval}
+              onIntervalChange={handleIntervalChange}
             />
           )}
         </section>

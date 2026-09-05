@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { isPermissionGranted } from '@tauri-apps/plugin-notification';
-import { Save, RefreshCw, AlertTriangle, Key, HelpCircle, Copy, Check } from 'lucide-react';
+import { Save, RefreshCw, AlertTriangle, Key, HelpCircle, Copy, Check, Clock, Radio, ShieldCheck } from 'lucide-react';
 import { db, SupabaseConfig } from '../services/db';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -98,6 +98,9 @@ interface SettingsSectionProps {
   isSyncing: boolean;
   onSessionChange: () => void;
   syncError?: string | null;
+  lastSyncedAt?: number | null;
+  syncInterval?: number;
+  onIntervalChange?: (seconds: number) => void;
 }
 
 export const SettingsSection: React.FC<SettingsSectionProps> = ({
@@ -105,6 +108,9 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
   isSyncing,
   onSessionChange,
   syncError,
+  lastSyncedAt,
+  syncInterval = 30,
+  onIntervalChange,
 }) => {
   const [config, setConfig] = useState<SupabaseConfig>({ url: '', anonKey: '' });
   const [isConfigSaved, setIsConfigSaved] = useState(false);
@@ -112,6 +118,23 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [copied, setCopied] = useState(false);
   const [notificationsAllowed, setNotificationsAllowed] = useState(true);
+  const [, setTick] = useState(0);
+
+  // Periodic tick to refresh relative time labels
+  useEffect(() => {
+    const timer = setInterval(() => setTick(t => t + 1), 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatLastSync = (timestamp?: number | null) => {
+    if (!timestamp) return 'Aún no sincronizado';
+    const diffSec = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+    if (diffSec < 5) return 'Hace un instante';
+    if (diffSec < 60) return `Hace ${diffSec}s`;
+    const mins = Math.floor(diffSec / 60);
+    if (mins < 60) return `Hace ${mins} min`;
+    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
   const checkNotificationPermissions = async () => {
     try {
@@ -282,11 +305,72 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 
               <Separator className="bg-neutral-200 dark:bg-neutral-800" />
 
+              {/* Sincronización Continua & Automática */}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <Radio className="h-4 w-4 text-emerald-500 animate-pulse" />
+                    <span className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                      Sincronización Continua en la Nube
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800/60 px-2.5 py-1 rounded-full">
+                    <Clock className="h-3.5 w-3.5 text-neutral-400" />
+                    <span>Última: <strong>{formatLastSync(lastSyncedAt)}</strong></span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                  Monitorea cambios en la base de datos de Supabase en tiempo real (WebSockets) y mediante intervalos programados, detectando cambios automáticamente sin parpadear la interfaz ni sobreescribir datos locales.
+                </p>
+
+                {/* Interval Selector */}
+                <div className="flex flex-col gap-1.5 mt-1">
+                  <Label className="text-xs font-semibold text-neutral-600 dark:text-neutral-300">
+                    Frecuencia de comprobación continua:
+                  </Label>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {[
+                      { label: '15 seg', value: 15 },
+                      { label: '30 seg (Recomendado)', value: 30 },
+                      { label: '1 min', value: 60 },
+                      { label: '5 min', value: 300 },
+                      { label: 'Solo Manual', value: 0 },
+                    ].map((opt) => (
+                      <Button
+                        key={opt.value}
+                        type="button"
+                        variant={syncInterval === opt.value ? 'default' : 'outline'}
+                        size="sm"
+                        className={`h-7.5 px-3 text-xs rounded-lg transition-all ${
+                          syncInterval === opt.value
+                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white dark:bg-emerald-600 dark:hover:bg-emerald-500 font-bold shadow-sm'
+                            : 'border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                        }`}
+                        onClick={() => onIntervalChange?.(opt.value)}
+                      >
+                        {opt.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Safe Sync Assurance Callout */}
+                <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs mt-1">
+                  <ShieldCheck className="h-4 w-4 flex-shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>
+                    <strong>Protección activa:</strong> El motor utiliza bloqueo de concurrencia (Mutex) para evitar choques en la red y fusiona los cambios de la nube protegiendo tus ediciones locales no sincronizadas.
+                  </span>
+                </div>
+              </div>
+
+              <Separator className="bg-neutral-200 dark:bg-neutral-800" />
+
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-sm font-bold text-neutral-900 dark:text-neutral-100">Sincronización Directa</div>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed max-w-[460px]">
-                    Sincroniza tus proyectos, tareas e ideas locales directamente con tu base de datos remota.
+                    Fuerza una comprobación y subida inmediata con tu base de datos remota ahora mismo.
                   </p>
                 </div>
                 <Button 

@@ -1,4 +1,4 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
 
 export interface Project {
   id: string;
@@ -42,24 +42,132 @@ export interface SyncQueueItem {
   timestamp: number;
 }
 
+export interface SyncResult {
+  success: boolean;
+  changed: boolean;
+  error?: string;
+}
+
 class DatabaseService {
   private supabase: SupabaseClient | null = null;
   private config: SupabaseConfig | null = null;
   private isOffline: boolean = !navigator.onLine;
 
+  // Concurrency lock & sequential queue
+  private isSyncInProgress: boolean = false;
+  private pendingSyncQueued: boolean = false;
+
+  // Realtime subscription
+  private realtimeChannel: RealtimeChannel | null = null;
+  private debounceRealtimeTimeout: any = null;
+  private remoteChangeListeners: ((changed: boolean) => void)[] = [];
+
   constructor() {
     this.loadConfig();
     this.setupListeners();
+    if (this.supabase) {
+      this.setupRealtime();
+    }
   }
 
   private setupListeners() {
     window.addEventListener('online', () => {
       this.isOffline = false;
-      this.syncPendingQueue();
+      this.safeSynchronize({ silent: true });
     });
     window.addEventListener('offline', () => {
       this.isOffline = true;
     });
+  }
+
+  // --- Realtime Subscriptions ---
+  private setupRealtime() {
+    if (!this.supabase) return;
+    this.teardownRealtime();
+
+    try {
+      this.realtimeChannel = this.supabase
+        .channel('schema-db-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'projects' },
+          () => this.handleRealtimeChange()
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'requirements' },
+          () => this.handleRealtimeChange()
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'ideas' },
+          () => this.handleRealtimeChange()
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn('Realtime subscription not supported or failed:', err);
+    }
+  }
+
+  private teardownRealtime() {
+    if (this.realtimeChannel && this.supabase) {
+      try {
+        this.supabase.removeChannel(this.realtimeChannel);
+      } catch (err) {
+        console.warn('Error tearing down realtime channel', err);
+      }
+      this.realtimeChannel = null;
+    }
+    if (this.debounceRealtimeTimeout) {
+      clearTimeout(this.debounceRealtimeTimeout);
+      this.debounceRealtimeTimeout = null;
+    }
+  }
+
+  private handleRealtimeChange() {
+    if (this.debounceRealtimeTimeout) {
+      clearTimeout(this.debounceRealtimeTimeout);
+    }
+    // Debounce 600ms to allow multi-row DB transactions to settle
+    this.debounceRealtimeTimeout = setTimeout(() => {
+      this.safeSynchronize({ silent: true });
+    }, 600);
+  }
+
+  public onRemoteChange(callback: (changed: boolean) => void): () => void {
+    this.remoteChangeListeners.push(callback);
+    return () => {
+      this.remoteChangeListeners = this.remoteChangeListeners.filter(cb => cb !== callback);
+    };
+  }
+
+  private notifyRemoteChange(changed: boolean) {
+    for (const listener of this.remoteChangeListeners) {
+      try {
+        listener(changed);
+      } catch (e) {
+        console.error('Error in onRemoteChange listener', e);
+      }
+    }
+  }
+
+  // --- Interval & Last Synced Preference ---
+  public getSyncInterval(): number {
+    const saved = localStorage.getItem('sync_interval_seconds');
+    if (saved === null) return 30; // Default: 30 seconds
+    const parsed = parseInt(saved, 10);
+    return isNaN(parsed) ? 30 : parsed;
+  }
+
+  public setSyncInterval(seconds: number) {
+    localStorage.setItem('sync_interval_seconds', seconds.toString());
+  }
+
+  public getLastSyncedAt(): number | null {
+    const saved = localStorage.getItem('last_synced_at');
+    if (!saved) return null;
+    const parsed = parseInt(saved, 10);
+    return isNaN(parsed) ? null : parsed;
   }
 
   // --- Connection Test ---
@@ -97,10 +205,12 @@ class DatabaseService {
   }
 
   public saveConfig(config: SupabaseConfig | null) {
+    this.teardownRealtime();
     if (config) {
       localStorage.setItem('supabase_config', JSON.stringify(config));
       this.config = config;
       this.supabase = createClient(config.url, config.anonKey);
+      this.setupRealtime();
     } else {
       localStorage.removeItem('supabase_config');
       this.config = null;
@@ -232,9 +342,13 @@ class DatabaseService {
   }
 
   // --- Sync Queue Logic ---
-  private getSyncQueue(): SyncQueueItem[] {
+  public getSyncQueue(): SyncQueueItem[] {
     const queueStr = localStorage.getItem('sync_queue') || '[]';
-    return JSON.parse(queueStr);
+    try {
+      return JSON.parse(queueStr);
+    } catch {
+      return [];
+    }
   }
 
   private saveSyncQueue(queue: SyncQueueItem[]) {
@@ -247,22 +361,41 @@ class DatabaseService {
     filteredQueue.push(item);
     this.saveSyncQueue(filteredQueue);
 
-    this.syncPendingQueue();
+    this.safeSynchronize({ silent: true });
   }
 
+  // --- Ordered, Safe Queue Push ---
   public async syncPendingQueue(): Promise<{ success: boolean; error?: string }> {
     if (this.isOffline || !this.supabase) return { success: true };
-    
+
     const queue = this.getSyncQueue();
     if (queue.length === 0) return { success: true };
+
+    // Respect Foreign Keys:
+    // When deleting: delete requirements first, then projects, then ideas
+    // When upserting: upsert projects first, then requirements, then ideas
+    const sortedQueue = [...queue].sort((a, b) => {
+      if (a.action === 'delete' && b.action !== 'delete') return -1;
+      if (a.action !== 'delete' && b.action === 'delete') return 1;
+
+      // Both deletes: requirements before projects
+      if (a.action === 'delete' && b.action === 'delete') {
+        const order = { requirement: 1, idea: 2, project: 3 };
+        return (order[a.type] || 2) - (order[b.type] || 2);
+      }
+
+      // Both upserts: projects before requirements
+      const order = { project: 1, requirement: 2, idea: 3 };
+      return (order[a.type] || 2) - (order[b.type] || 2);
+    });
 
     const remainingQueue: SyncQueueItem[] = [];
     let lastError: any = null;
 
-    for (const item of queue) {
+    for (const item of sortedQueue) {
       try {
         const table = item.type === 'project' ? 'projects' : item.type === 'requirement' ? 'requirements' : 'ideas';
-        
+
         if (item.action === 'delete') {
           const { error } = await this.supabase
             .from(table)
@@ -273,7 +406,7 @@ class DatabaseService {
         } else if (item.action === 'upsert') {
           // Exclude user_id property to avoid DB constraint failures since there is no session
           const { user_id, ...cleanData } = item.data;
-          
+
           const { error } = await this.supabase
             .from(table)
             .upsert(cleanData);
@@ -295,73 +428,170 @@ class DatabaseService {
     return { success: true };
   }
 
-  // --- Pull Data from Cloud (Direct Sync) ---
-  public async pullAllData(): Promise<{ success: boolean; error?: string }> {
-    if (!this.supabase) return { success: false, error: 'Supabase client not initialized' };
+  // --- Robust Two-Way Continuous Safe Synchronize ---
+  public async safeSynchronize(options: { silent?: boolean } = {}): Promise<SyncResult> {
+    if (this.isOffline || !this.supabase) {
+      return { success: false, changed: false, error: 'Sin conexión a internet o base de datos no configurada.' };
+    }
+
+    // Mutex lock to prevent concurrency collisions
+    if (this.isSyncInProgress) {
+      this.pendingSyncQueued = true;
+      return { success: true, changed: false };
+    }
+
+    this.isSyncInProgress = true;
 
     try {
-      // 1. Pull Projects
-      const { data: cloudProjects, error: pError } = await this.supabase
-        .from('projects')
-        .select('*');
+      // 1. Push pending local changes first
+      const pushRes = await this.syncPendingQueue();
+      if (!pushRes.success && !options.silent) {
+        return { success: false, changed: false, error: pushRes.error };
+      }
 
-      if (pError) throw pError;
+      // 2. Fetch fresh tables from Supabase
+      const [projectsRes, reqsRes, ideasRes] = await Promise.all([
+        this.supabase.from('projects').select('*'),
+        this.supabase.from('requirements').select('*'),
+        this.supabase.from('ideas').select('*'),
+      ]);
 
-      // 2. Pull Requirements
-      const { data: cloudReqs, error: rError } = await this.supabase
-        .from('requirements')
-        .select('*');
+      if (projectsRes.error) throw projectsRes.error;
+      if (reqsRes.error) throw reqsRes.error;
+      if (ideasRes.error) throw ideasRes.error;
 
-      if (rError) throw rError;
+      // 3. Safe Merge: Protect unpushed local modifications
+      const activeQueue = this.getSyncQueue();
 
-      // 3. Pull Ideas
-      const { data: cloudIdeas, error: iError } = await this.supabase
-        .from('ideas')
-        .select('*');
-
-      if (iError) throw iError;
-
-      // Overwrite local storage with cloud tables (Supabase is source of truth after pushing)
-      const projects = (cloudProjects || []).map((p: any) => ({
+      // Merge Projects
+      let mergedProjects: Project[] = (projectsRes.data || []).map((p: any) => ({
         id: p.id,
         name: p.name,
-        description: p.description,
+        description: p.description || '',
         created_at: p.created_at,
       }));
-      localStorage.setItem('projects', JSON.stringify(projects));
 
-      const reqs = (cloudReqs || []).map((r: any) => ({
+      // Apply pending queue modifications on top of cloud data
+      for (const q of activeQueue) {
+        if (q.type === 'project') {
+          if (q.action === 'delete') {
+            mergedProjects = mergedProjects.filter(p => p.id !== q.id);
+          } else if (q.action === 'upsert' && q.data) {
+            const idx = mergedProjects.findIndex(p => p.id === q.id);
+            if (idx >= 0) {
+              mergedProjects[idx] = q.data;
+            } else {
+              mergedProjects.push(q.data);
+            }
+          }
+        }
+      }
+
+      // Merge Requirements
+      let mergedReqs: Requirement[] = (reqsRes.data || []).map((r: any) => ({
         id: r.id,
         project_id: r.project_id,
         title: r.title,
-        description: r.description,
+        description: r.description || '',
         status: r.status,
         created_at: r.created_at,
         estimated_date: r.estimated_date,
-        alarm_enabled: r.alarm_enabled,
-        notified: r.notified,
+        alarm_enabled: r.alarm_enabled ?? true,
+        notified: r.notified ?? false,
       }));
-      localStorage.setItem('requirements', JSON.stringify(reqs));
 
-      const ideas = (cloudIdeas || []).map((i: any) => ({
+      for (const q of activeQueue) {
+        if (q.type === 'requirement') {
+          if (q.action === 'delete') {
+            mergedReqs = mergedReqs.filter(r => r.id !== q.id);
+          } else if (q.action === 'upsert' && q.data) {
+            const idx = mergedReqs.findIndex(r => r.id === q.id);
+            if (idx >= 0) {
+              mergedReqs[idx] = q.data;
+            } else {
+              mergedReqs.push(q.data);
+            }
+          }
+        }
+      }
+
+      // Merge Ideas
+      let mergedIdeas: Idea[] = (ideasRes.data || []).map((i: any) => ({
         id: i.id,
         title: i.title,
-        content: i.content,
+        content: i.content || '',
         created_at: i.created_at,
       }));
-      localStorage.setItem('ideas', JSON.stringify(ideas));
 
-      // Clear sync queue
-      this.saveSyncQueue([]);
+      for (const q of activeQueue) {
+        if (q.type === 'idea') {
+          if (q.action === 'delete') {
+            mergedIdeas = mergedIdeas.filter(i => i.id !== q.id);
+          } else if (q.action === 'upsert' && q.data) {
+            const idx = mergedIdeas.findIndex(i => i.id === q.id);
+            if (idx >= 0) {
+              mergedIdeas[idx] = q.data;
+            } else {
+              mergedIdeas.push(q.data);
+            }
+          }
+        }
+      }
 
-      return { success: true };
+      // 4. Zero-Flicker Change Detection
+      const currentProjectsStr = localStorage.getItem('projects') || '[]';
+      const currentReqsStr = localStorage.getItem('requirements') || '[]';
+      const currentIdeasStr = localStorage.getItem('ideas') || '[]';
+
+      const newProjectsStr = JSON.stringify(mergedProjects);
+      const newReqsStr = JSON.stringify(mergedReqs);
+      const newIdeasStr = JSON.stringify(mergedIdeas);
+
+      const hasChanged =
+        currentProjectsStr !== newProjectsStr ||
+        currentReqsStr !== newReqsStr ||
+        currentIdeasStr !== newIdeasStr;
+
+      if (hasChanged) {
+        localStorage.setItem('projects', newProjectsStr);
+        localStorage.setItem('requirements', newReqsStr);
+        localStorage.setItem('ideas', newIdeasStr);
+      }
+
+      // Record last sync timestamp
+      const now = Date.now();
+      localStorage.setItem('last_synced_at', now.toString());
+
+      if (hasChanged) {
+        this.notifyRemoteChange(true);
+      }
+
+      return { success: true, changed: hasChanged };
     } catch (e: any) {
-      console.error('Error pulling cloud data', e);
-      return { success: false, error: e.message || 'Unknown error' };
+      if (!options.silent) {
+        console.error('Error during safeSynchronize:', e);
+      }
+      return { success: false, changed: false, error: e.message || 'Error en la sincronización con Supabase.' };
+    } finally {
+      this.isSyncInProgress = false;
+
+      // If another sync was requested while this one was running, execute it now
+      if (this.pendingSyncQueued) {
+        this.pendingSyncQueued = false;
+        setTimeout(() => {
+          this.safeSynchronize({ silent: true });
+        }, 100);
+      }
     }
   }
 
-  // --- Push All Local Data to Cloud ---
+  // --- Backwards-compatible pullAllData ---
+  public async pullAllData(): Promise<{ success: boolean; error?: string }> {
+    const res = await this.safeSynchronize({ silent: false });
+    return { success: res.success, error: res.error };
+  }
+
+  // --- Backwards-compatible pushAllData ---
   public async pushAllData(): Promise<{ success: boolean; error?: string }> {
     if (!this.supabase) return { success: false, error: 'Supabase client not initialized' };
 
@@ -397,9 +627,6 @@ class DatabaseService {
           .upsert(cleanIdeas);
         if (error) throw error;
       }
-
-      // Clear sync queue
-      this.saveSyncQueue([]);
 
       return { success: true };
     } catch (e: any) {

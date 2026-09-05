@@ -49,8 +49,12 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
   const loadProjects = () => {
     const list = db.getProjects();
     setProjects(list);
-    if (list.length > 0 && !selectedProjectId) {
-      setSelectedProjectId(list[0].id);
+    if (list.length > 0) {
+      if (!selectedProjectId || !list.some(p => p.id === selectedProjectId)) {
+        setSelectedProjectId(list[0].id);
+      }
+    } else {
+      setSelectedProjectId(null);
     }
   };
 

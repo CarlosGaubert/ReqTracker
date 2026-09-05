@@ -14,7 +14,19 @@ interface SidebarProps {
   toggleTheme: () => void;
   onOpenSearch: () => void;
   urgentCount: number;
+  lastSyncedAt?: number | null;
+  syncInterval?: number;
 }
+
+const formatSidebarTime = (timestamp?: number | null) => {
+  if (!timestamp) return '';
+  const diffSec = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+  if (diffSec < 10) return 'hace instantes';
+  if (diffSec < 60) return `hace ${diffSec}s`;
+  const mins = Math.floor(diffSec / 60);
+  if (mins < 60) return `hace ${mins}m`;
+  return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
 
 export const Sidebar: React.FC<SidebarProps> = ({
   activeSection,
@@ -25,9 +37,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   toggleTheme,
   onOpenSearch,
   urgentCount,
+  lastSyncedAt,
+  syncInterval = 30,
 }) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [, setTick] = useState(0);
   const isDbConnected = !!db.getSupabaseClient();
+
+  useEffect(() => {
+    const timer = setInterval(() => setTick(t => t + 1), 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -173,10 +193,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
             
             {isDbConnected ? (
               <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span>Nube Conectada</span>
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Nube Conectada</span>
+                  </div>
+                  {syncInterval !== undefined && syncInterval > 0 ? (
+                    <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                      {syncInterval}s
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-medium text-neutral-400">
+                      Manual
+                    </span>
+                  )}
                 </div>
+
+                {lastSyncedAt && (
+                  <div className="text-[10px] text-neutral-500 dark:text-neutral-400 flex items-center justify-between">
+                    <span>Sincronizado:</span>
+                    <span className="font-medium text-neutral-700 dark:text-neutral-300">
+                      {formatSidebarTime(lastSyncedAt)}
+                    </span>
+                  </div>
+                )}
+
                 <Button 
                   variant="outline"
                   size="sm"
