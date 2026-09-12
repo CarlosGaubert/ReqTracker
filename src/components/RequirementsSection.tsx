@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Bell, BellOff, Calendar, AlertCircle, List, Kanban } from 'lucide-react';
+import { Plus, Trash2, Bell, BellOff, Calendar, AlertCircle, List, Kanban, ArrowLeft, PanelLeftOpen } from 'lucide-react';
 import { db, Project, Requirement } from '../services/db';
 import { checkAlarms } from '../services/alarms';
 import { Button } from '@/components/ui/button';
@@ -23,12 +23,18 @@ interface RequirementsSectionProps {
   project: Project;
   onDataChange: () => void;
   refreshTrigger: number;
+  onBackToProjects?: () => void;
+  onToggleListPane?: () => void;
+  isListPaneCollapsed?: boolean;
 }
 
 export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
   project,
   onDataChange,
   refreshTrigger,
+  onBackToProjects,
+  onToggleListPane,
+  isListPaneCollapsed,
 }) => {
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -199,47 +205,76 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
   return (
     <div className="flex flex-col gap-4.5 h-full">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">{project.name}</h2>
-          {project.description && (
-            <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed max-w-[680px]">
-              {project.description}
-            </p>
+      <div className="flex flex-col gap-2.5">
+        <div className="flex items-center gap-2">
+          {onBackToProjects && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="lg:hidden -ml-2 text-xs font-semibold gap-1.5 text-neutral-600 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-neutral-50 h-8 px-2"
+              onClick={onBackToProjects}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Volver a Proyectos</span>
+            </Button>
+          )}
+
+          {onToggleListPane && isListPaneCollapsed && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hidden lg:flex -ml-2 text-xs font-semibold gap-1.5 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 h-8 px-2"
+              onClick={onToggleListPane}
+              title="Mostrar lista de proyectos"
+            >
+              <PanelLeftOpen className="h-4 w-4" />
+              <span>Mostrar Proyectos</span>
+            </Button>
           )}
         </div>
-        
-        <div className="flex items-center gap-3.5 w-full sm:w-auto justify-between sm:justify-end">
-          {/* View Toggle */}
-          <div className="flex items-center border border-neutral-200 dark:border-neutral-800 rounded-xl p-1 bg-neutral-100/60 dark:bg-neutral-900/60">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-8 px-3 text-xs gap-1.5 rounded-lg ${viewMode === 'list' ? 'bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 shadow-sm font-bold' : 'text-neutral-500 hover:text-neutral-800'}`}
-              onClick={() => setViewMode('list')}
-            >
-              <List className="h-4 w-4" />
-              <span className="hidden md:inline">Lista</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-8 px-3 text-xs gap-1.5 rounded-lg ${viewMode === 'kanban' ? 'bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 shadow-sm font-bold' : 'text-neutral-500 hover:text-neutral-800'}`}
-              onClick={() => setViewMode('kanban')}
-            >
-              <Kanban className="h-4 w-4" />
-              <span className="hidden md:inline">Kanban</span>
+
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50 truncate">{project.name}</h2>
+            {project.description && (
+              <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-0.5 leading-relaxed max-w-[680px] line-clamp-2 sm:line-clamp-none">
+                {project.description}
+              </p>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2.5 sm:gap-3.5 w-full sm:w-auto justify-between sm:justify-end flex-wrap">
+            {/* View Toggle */}
+            <div className="flex items-center border border-neutral-200 dark:border-neutral-800 rounded-xl p-0.5 sm:p-1 bg-neutral-100/60 dark:bg-neutral-900/60">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-7.5 sm:h-8 px-2.5 sm:px-3 text-xs gap-1.5 rounded-lg ${viewMode === 'list' ? 'bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 shadow-sm font-bold' : 'text-neutral-500 hover:text-neutral-800'}`}
+                onClick={() => setViewMode('list')}
+              >
+                <List className="h-3.5 w-3.5" />
+                <span>Lista</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-7.5 sm:h-8 px-2.5 sm:px-3 text-xs gap-1.5 rounded-lg ${viewMode === 'kanban' ? 'bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 shadow-sm font-bold' : 'text-neutral-500 hover:text-neutral-800'}`}
+                onClick={() => setViewMode('kanban')}
+              >
+                <Kanban className="h-3.5 w-3.5" />
+                <span>Kanban</span>
+              </Button>
+            </div>
+
+            <Button size="sm" className="h-8 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm font-semibold gap-1.5 sm:gap-2 rounded-xl shadow-sm" onClick={() => setIsModalOpen(true)}>
+              <Plus className="h-4 w-4" />
+              <span>Añadir Tarea</span>
             </Button>
           </div>
-
-          <Button size="sm" className="h-9 px-4 text-sm font-semibold gap-2 rounded-xl shadow-sm" onClick={() => setIsModalOpen(true)}>
-            <Plus className="h-4 w-4" />
-            <span>Añadir Tarea</span>
-          </Button>
         </div>
       </div>
 
-      <Separator className="bg-neutral-200 dark:bg-neutral-800 my-1" />
+      <Separator className="bg-neutral-200 dark:bg-neutral-800 my-0.5" />
 
       {requirements.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center p-8 gap-4">
@@ -334,7 +369,7 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
         </div>
       ) : (
         /* KANBAN BOARD VIEW */
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-5 overflow-hidden h-full pb-2">
+        <div className="flex-1 kanban-container">
           {(['todo', 'in-progress', 'done'] as const).map(status => {
             const statusTasks = requirements.filter(r => r.status === status);
             return (
@@ -342,7 +377,7 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
                 key={status}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => handleDrop(e, status)}
-                className="flex flex-col gap-3.5 border border-neutral-200 dark:border-neutral-800 bg-neutral-100/40 dark:bg-neutral-900/20 rounded-2xl p-4 h-full overflow-hidden"
+                className="kanban-column flex flex-col gap-3.5 border border-neutral-200 dark:border-neutral-800 bg-neutral-100/40 dark:bg-neutral-900/20 rounded-2xl p-3.5 sm:p-4 h-full overflow-hidden"
               >
                 {/* Column Header */}
                 <div className="flex items-center justify-between px-1 flex-shrink-0">
@@ -432,7 +467,7 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
 
       {/* Modal for creating requirement */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[480px] border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 rounded-2xl">
+        <DialogContent className="sm:max-w-[480px] max-w-[calc(100vw-2rem)] border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 rounded-2xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold tracking-tight">Nuevo Requerimiento (To Do)</DialogTitle>
           </DialogHeader>

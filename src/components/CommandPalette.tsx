@@ -193,23 +193,23 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   return (
     <div 
       ref={overlayRef}
-      className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center pt-[15vh] backdrop-blur-[2px] p-4 select-none animate-in fade-in duration-200"
+      className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center pt-[8vh] sm:pt-[15vh] backdrop-blur-[2px] p-2.5 sm:p-4 select-none animate-in fade-in duration-200"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 w-[580px] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[480px] animate-in zoom-in-95 slide-in-from-top-4 duration-200">
+      <div className="bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 w-full max-w-[580px] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] sm:max-h-[480px] animate-in zoom-in-95 slide-in-from-top-4 duration-200">
         
         {/* Search Input Bar */}
-        <div className="flex items-center gap-3.5 px-5 border-b border-neutral-200 dark:border-neutral-800 h-14 flex-shrink-0">
-          <Search className="h-5 w-5 text-neutral-400" />
+        <div className="flex items-center gap-2.5 sm:gap-3.5 px-3.5 sm:px-5 border-b border-neutral-200 dark:border-neutral-800 h-12 sm:h-14 flex-shrink-0">
+          <Search className="h-4 sm:h-5 w-4 sm:w-5 text-neutral-400 flex-shrink-0" />
           <input
             ref={inputRef}
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Busca comandos, proyectos, notas o ejecuta acciones..."
-            className="w-full bg-transparent border-none text-base font-medium text-neutral-900 dark:text-neutral-50 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-0 py-2.5"
+            placeholder="Busca comandos, proyectos o notas..."
+            className="w-full bg-transparent border-none text-sm sm:text-base font-medium text-neutral-900 dark:text-neutral-50 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-0 py-2 sm:py-2.5"
           />
-          <Badge variant="outline" className="text-xs text-neutral-500 dark:text-neutral-400 border-neutral-200 dark:border-neutral-800 select-none shadow-none font-semibold h-6 px-2 rounded-md">
+          <Badge variant="outline" className="text-[10px] sm:text-xs text-neutral-500 dark:text-neutral-400 border-neutral-200 dark:border-neutral-800 select-none shadow-none font-semibold h-5 sm:h-6 px-1.5 sm:px-2 rounded-md flex-shrink-0">
             ESC
           </Badge>
         </div>

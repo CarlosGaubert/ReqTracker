@@ -183,20 +183,20 @@ export const IdeasSection: React.FC<IdeasSectionProps> = ({
 
   return (
     <div className="flex flex-col gap-4.5 h-full">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50 font-sans">Banco de Ideas</h2>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50 font-sans">Banco de Ideas</h2>
+          <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-0.5 leading-relaxed">
             Anota tus pensamientos rápidos, ideas de proyectos o notas importantes aquí.
           </p>
         </div>
-        <Button size="sm" className="h-9.5 px-4 text-sm font-semibold gap-2 rounded-xl shadow-sm" onClick={handleOpenCreateModal}>
-          <Plus className="h-4.5 w-4.5" />
+        <Button size="sm" className="h-8.5 sm:h-9.5 px-3.5 sm:px-4 text-xs sm:text-sm font-semibold gap-2 rounded-xl shadow-sm self-stretch sm:self-auto justify-center" onClick={handleOpenCreateModal}>
+          <Plus className="h-4 w-4" />
           <span>Nueva Idea</span>
         </Button>
       </div>
 
-      <Separator className="bg-neutral-200 dark:bg-neutral-800 my-1" />
+      <Separator className="bg-neutral-200 dark:bg-neutral-800 my-0.5" />
 
       {ideas.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center p-8 gap-4">
@@ -211,14 +211,14 @@ export const IdeasSection: React.FC<IdeasSectionProps> = ({
           </div>
         </div>
       ) : (
-        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 overflow-y-auto pr-1 pb-8">
+        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-5 overflow-y-auto pr-1 pb-8">
           {ideas.map(idea => (
             <Card 
               key={idea.id} 
-              className="group cursor-pointer transition-all duration-200 hover:bg-neutral-100/60 dark:hover:bg-neutral-900/40 border border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-900/30 flex flex-col shadow-sm relative min-h-[200px] select-none rounded-2xl"
+              className="group cursor-pointer transition-all duration-200 hover:bg-neutral-100/60 dark:hover:bg-neutral-900/40 border border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-900/30 flex flex-col shadow-sm relative min-h-[190px] select-none rounded-2xl"
               onClick={(e) => handleOpenEditModal(idea, e)}
             >
-              <CardContent className="p-4.5 flex flex-col h-full gap-2.5">
+              <CardContent className="p-4 sm:p-4.5 flex flex-col h-full gap-2.5">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-bold text-base truncate pr-12 text-neutral-900 dark:text-neutral-50">{idea.title}</h3>
                   <div 
@@ -264,7 +264,7 @@ export const IdeasSection: React.FC<IdeasSectionProps> = ({
 
       {/* Modal for creating/editing idea */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[540px] border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 rounded-2xl">
+        <DialogContent className="sm:max-w-[540px] max-w-[calc(100vw-2rem)] border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 rounded-2xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold tracking-tight">
               {editingIdea ? 'Editar Idea' : 'Nueva Idea'}

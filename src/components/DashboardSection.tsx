@@ -74,14 +74,14 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
       .filter(r => r.daysDiff <= 3)
       // Sort by daysDiff ascending (overdue first, then soonest)
       .sort((a, b) => a.daysDiff - b.daysDiff)
-      .slice(0, 4); // Limit to top 4
+      .slice(0, 6); // Allow up to 6 on taller vertical screens
 
     setUrgentTasks(urgent);
 
-    // 4. Get 3 most recent ideas
+    // 4. Get most recent ideas
     const sortedIdeas = [...ideas]
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .slice(0, 3);
+      .slice(0, 4);
     setRecentIdeas(sortedIdeas);
 
   }, [refreshTrigger]);
@@ -127,9 +127,9 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
   return (
     <div className="flex flex-col gap-6 h-full overflow-y-auto pr-1 pb-8">
       {/* 1. Header Greeting */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-neutral-800 dark:text-neutral-50 flex items-center gap-2">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-800 dark:text-neutral-50 flex items-center gap-2">
             <span>¡Hola de nuevo!</span>
             <Sparkles className="h-5 w-5 text-emerald-500 animate-pulse" />
           </h2>
@@ -139,11 +139,11 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
         </div>
         
         {/* Quick actions panel */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap w-full sm:w-auto">
           <Button 
             variant="outline" 
             size="sm" 
-            className="h-9 text-sm font-semibold gap-2 border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-xl px-3.5"
+            className="h-8.5 sm:h-9 text-xs sm:text-sm font-semibold gap-1.5 sm:gap-2 border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-xl px-3 sm:px-3.5 flex-1 sm:flex-initial"
             onClick={onOpenCreateIdea}
           >
             <PlusCircle className="h-4 w-4 text-neutral-500" />
@@ -151,7 +151,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
           </Button>
           <Button 
             size="sm" 
-            className="h-9 text-sm font-semibold gap-2 rounded-xl px-3.5 shadow-sm"
+            className="h-8.5 sm:h-9 text-xs sm:text-sm font-semibold gap-1.5 sm:gap-2 rounded-xl px-3 sm:px-3.5 shadow-sm flex-1 sm:flex-initial"
             onClick={onOpenCreateProject}
           >
             <PlusCircle className="h-4 w-4" />
@@ -160,69 +160,69 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
         </div>
       </div>
 
-      <Separator className="bg-neutral-200 dark:bg-neutral-800 my-1" />
+      <Separator className="bg-neutral-200 dark:bg-neutral-800 my-0.5" />
 
       {/* 2. Metrics Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4.5">
         <Card className="border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-900/30 shadow-sm rounded-2xl">
-          <CardContent className="p-4.5 flex items-center justify-between">
+          <CardContent className="p-4 sm:p-4.5 flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Proyectos</p>
-              <h3 className="text-3xl font-black tracking-tight text-neutral-900 dark:text-neutral-50">{stats.projectsCount}</h3>
+              <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-neutral-900 dark:text-neutral-50">{stats.projectsCount}</h3>
             </div>
-            <div className="p-3 bg-neutral-100/90 dark:bg-neutral-800/60 rounded-2xl text-neutral-600 dark:text-neutral-300">
-              <Folder className="h-6 w-6" />
+            <div className="p-2.5 sm:p-3 bg-neutral-100/90 dark:bg-neutral-800/60 rounded-2xl text-neutral-600 dark:text-neutral-300">
+              <Folder className="h-5 sm:h-6 w-5 sm:w-6" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-900/30 shadow-sm rounded-2xl">
-          <CardContent className="p-4.5 flex items-center justify-between">
+          <CardContent className="p-4 sm:p-4.5 flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Por Hacer</p>
-              <h3 className="text-3xl font-black tracking-tight text-neutral-900 dark:text-neutral-50">{stats.pendingTasks}</h3>
+              <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-neutral-900 dark:text-neutral-50">{stats.pendingTasks}</h3>
             </div>
-            <div className="p-3 bg-amber-500/10 dark:bg-amber-500/10 rounded-2xl text-amber-600 dark:text-amber-400">
-              <AlertCircle className="h-6 w-6" />
+            <div className="p-2.5 sm:p-3 bg-amber-500/10 dark:bg-amber-500/10 rounded-2xl text-amber-600 dark:text-amber-400">
+              <AlertCircle className="h-5 sm:h-6 w-5 sm:w-6" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-900/30 shadow-sm rounded-2xl">
-          <CardContent className="p-4.5 flex items-center justify-between">
+          <CardContent className="p-4 sm:p-4.5 flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Completadas</p>
-              <h3 className="text-3xl font-black tracking-tight text-neutral-900 dark:text-neutral-50">{stats.completedTasks}</h3>
+              <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-neutral-900 dark:text-neutral-50">{stats.completedTasks}</h3>
             </div>
-            <div className="p-3 bg-emerald-500/10 dark:bg-emerald-500/10 rounded-2xl text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="h-6 w-6" />
+            <div className="p-2.5 sm:p-3 bg-emerald-500/10 dark:bg-emerald-500/10 rounded-2xl text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="h-5 sm:h-6 w-5 sm:w-6" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-900/30 shadow-sm rounded-2xl">
-          <CardContent className="p-4.5 flex items-center justify-between">
+          <CardContent className="p-4 sm:p-4.5 flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Banco de Ideas</p>
-              <h3 className="text-3xl font-black tracking-tight text-neutral-900 dark:text-neutral-50">{stats.ideasCount}</h3>
+              <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-neutral-900 dark:text-neutral-50">{stats.ideasCount}</h3>
             </div>
-            <div className="p-3 bg-violet-500/10 dark:bg-violet-500/10 rounded-2xl text-violet-600 dark:text-violet-400">
-              <Lightbulb className="h-6 w-6" />
+            <div className="p-2.5 sm:p-3 bg-violet-500/10 dark:bg-violet-500/10 rounded-2xl text-violet-600 dark:text-violet-400">
+              <Lightbulb className="h-5 sm:h-6 w-5 sm:w-6" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* 3. Main Split Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-5 landscape:lg:grid-cols-5 gap-6">
         {/* Left Column: Urgent tasks (3 columns wide) */}
-        <div className="lg:col-span-3 flex flex-col gap-3.5">
+        <div className="xl:col-span-3 landscape:lg:col-span-3 flex flex-col gap-3.5">
           <div className="flex items-center justify-between">
             <h4 className="text-base font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
               <Bell className="h-5 w-5 text-neutral-500" />
               <span>Tareas Pendientes Críticas</span>
             </h4>
-            {stats.pendingTasks > 4 && (
+            {stats.pendingTasks > urgentTasks.length && (
               <Button 
                 variant="link" 
                 size="sm" 
@@ -288,7 +288,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
         </div>
 
         {/* Right Column: Recent ideas (2 columns wide) */}
-        <div className="lg:col-span-2 flex flex-col gap-3.5">
+        <div className="xl:col-span-2 landscape:lg:col-span-2 flex flex-col gap-3.5">
           <div className="flex items-center justify-between">
             <h4 className="text-base font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
               <Lightbulb className="h-5 w-5 text-neutral-500" />

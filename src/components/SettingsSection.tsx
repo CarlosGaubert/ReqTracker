@@ -282,39 +282,39 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
           </form>
         ) : (
           <Card className="border border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/30 shadow-sm rounded-2xl">
-            <CardContent className="p-5 flex flex-col gap-4.5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
+            <CardContent className="p-4 sm:p-5 flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 text-base font-bold text-emerald-600 dark:text-emerald-400">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
                     <span>Base de Datos Conectada</span>
                   </div>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 truncate max-w-[450px]">
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 truncate max-w-full">
                     URL: {config.url}
                   </p>
                 </div>
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="h-8.5 px-3 text-xs font-semibold rounded-lg border-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300"
+                  className="h-8 sm:h-8.5 px-3 text-xs font-semibold rounded-lg border-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300 self-stretch sm:self-auto justify-center"
                   onClick={handleClearConfig}
                 >
                   Desconectar
                 </Button>
               </div>
 
-              <Separator className="bg-neutral-200 dark:bg-neutral-800" />
+              <Separator className="bg-neutral-200 dark:border-neutral-800" />
 
               {/* Sincronización Continua & Automática */}
               <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Radio className="h-4 w-4 text-emerald-500 animate-pulse" />
+                    <Radio className="h-4 w-4 text-emerald-500 animate-pulse flex-shrink-0" />
                     <span className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
                       Sincronización Continua en la Nube
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800/60 px-2.5 py-1 rounded-full">
+                  <div className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800/60 px-2.5 py-1 rounded-full self-start sm:self-auto">
                     <Clock className="h-3.5 w-3.5 text-neutral-400" />
                     <span>Última: <strong>{formatLastSync(lastSyncedAt)}</strong></span>
                   </div>
@@ -324,28 +324,34 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                   Monitorea cambios en la base de datos de Supabase en tiempo real (WebSockets) y mediante intervalos programados, detectando cambios automáticamente sin parpadear la interfaz ni sobreescribir datos locales.
                 </p>
 
-                {/* Interval Selector */}
-                <div className="flex flex-col gap-1.5 mt-1">
-                  <Label className="text-xs font-semibold text-neutral-600 dark:text-neutral-300">
-                    Frecuencia de comprobación continua:
-                  </Label>
-                  <div className="flex flex-wrap gap-2 pt-1">
+                {/* Interval Controls */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 pt-1">
+                  <div>
+                    <div className="text-sm font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-neutral-500" />
+                      <span>Frecuencia de Auto-Sincronización</span>
+                    </div>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 leading-relaxed">
+                      Elige el intervalo de chequeo automático en segundo plano.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     {[
-                      { label: '15 seg', value: 15 },
-                      { label: '30 seg (Recomendado)', value: 30 },
-                      { label: '1 min', value: 60 },
-                      { label: '5 min', value: 300 },
-                      { label: 'Solo Manual', value: 0 },
-                    ].map((opt) => (
+                      { label: 'Manual', value: 0 },
+                      { label: '15s', value: 15 },
+                      { label: '30s', value: 30 },
+                      { label: '60s', value: 60 }
+                    ].map(opt => (
                       <Button
                         key={opt.value}
                         type="button"
                         variant={syncInterval === opt.value ? 'default' : 'outline'}
                         size="sm"
-                        className={`h-7.5 px-3 text-xs rounded-lg transition-all ${
+                        className={`h-7.5 px-2.5 text-xs font-semibold rounded-lg ${
                           syncInterval === opt.value
-                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white dark:bg-emerald-600 dark:hover:bg-emerald-500 font-bold shadow-sm'
-                            : 'border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-500 dark:hover:bg-emerald-600 shadow-sm'
+                            : 'border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-900 text-neutral-700 dark:text-neutral-300'
                         }`}
                         onClick={() => onIntervalChange?.(opt.value)}
                       >
@@ -366,7 +372,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 
               <Separator className="bg-neutral-200 dark:bg-neutral-800" />
 
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                 <div>
                   <div className="text-sm font-bold text-neutral-900 dark:text-neutral-100">Sincronización Directa</div>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed max-w-[460px]">
@@ -375,7 +381,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                 </div>
                 <Button 
                   size="sm" 
-                  className="h-9 px-4 text-xs font-semibold gap-2 rounded-xl shadow-sm"
+                  className="h-8.5 sm:h-9 px-3.5 sm:px-4 text-xs font-semibold gap-2 rounded-xl shadow-sm self-stretch sm:self-auto justify-center"
                   onClick={onSync} 
                   disabled={isSyncing}
                 >

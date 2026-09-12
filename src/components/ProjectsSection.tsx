@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Folder, Calendar } from 'lucide-react';
+import { Plus, Trash2, Folder, Calendar, PanelLeftClose } from 'lucide-react';
 import { db, Project } from '../services/db';
 import { RequirementsSection } from './RequirementsSection';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,8 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
 }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [mobileView, setMobileView] = useState<'list' | 'details'>('details');
+  const [isListPaneCollapsed, setIsListPaneCollapsed] = useState(false);
 
   useEffect(() => {
     if (forceOpenNewProject) {
@@ -55,6 +57,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
       }
     } else {
       setSelectedProjectId(null);
+      setMobileView('list');
     }
   };
 
@@ -80,6 +83,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
     onDataChange();
     loadProjects();
     setSelectedProjectId(newProject.id);
+    setMobileView('details');
   };
 
   const handleDeleteProject = (id: string, e: React.MouseEvent) => {
@@ -87,6 +91,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
     db.deleteProject(id);
     if (selectedProjectId === id) {
       setSelectedProjectId(null);
+      setMobileView('list');
     }
     onDataChange();
     loadProjects();
@@ -95,19 +100,34 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
   const selectedProject = projects.find(p => p.id === selectedProjectId);
 
   return (
-    <div className="flex h-full w-full overflow-hidden gap-5">
-      {/* Left panel: List of projects */}
-      <div className="w-[340px] flex-shrink-0 border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/40 p-4.5 rounded-2xl flex flex-col gap-4 overflow-y-auto">
+    <div className="flex h-full w-full overflow-hidden gap-4 lg:gap-5">
+      {/* Left panel: List of projects (Master) */}
+      <div className={`${
+        isListPaneCollapsed
+          ? 'hidden'
+          : (mobileView === 'list' || !selectedProject ? 'flex w-full' : 'hidden lg:flex')
+      } lg:w-72 xl:w-80 flex-shrink-0 border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/40 p-3.5 sm:p-4.5 rounded-2xl flex-col gap-3.5 sm:gap-4 overflow-y-auto`}>
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100">Proyectos</h3>
-          <Button 
-            size="sm" 
-            className="h-8.5 px-3 text-xs font-semibold gap-1.5 rounded-lg shadow-sm"
-            onClick={() => setIsModalOpen(true)}
-          >
-            <Plus className="h-4 w-4" />
-            <span>Nuevo</span>
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button 
+              size="sm" 
+              className="h-8 sm:h-8.5 px-3 text-xs font-semibold gap-1.5 rounded-lg shadow-sm"
+              onClick={() => setIsModalOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              <span>Nuevo</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden lg:flex h-8 w-8 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
+              onClick={() => setIsListPaneCollapsed(true)}
+              title="Ocultar lista para maximizar espacio"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {projects.length === 0 ? (
@@ -116,7 +136,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
             <p className="text-xs text-neutral-500 dark:text-neutral-400">No tienes proyectos registrados.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2.5 sm:gap-3">
             {projects.map(project => (
               <Card
                 key={project.id}
@@ -125,9 +145,12 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                     ? 'border-emerald-500 bg-emerald-50/10 dark:bg-emerald-950/20' 
                     : 'border-neutral-200 dark:border-neutral-800 bg-white/40 dark:bg-transparent'
                 }`}
-                onClick={() => setSelectedProjectId(project.id)}
+                onClick={() => {
+                  setSelectedProjectId(project.id);
+                  setMobileView('details');
+                }}
               >
-                <CardContent className="p-4 flex flex-col gap-2">
+                <CardContent className="p-3.5 sm:p-4 flex flex-col gap-1.5 sm:gap-2">
                   <div className="flex items-start justify-between gap-2">
                     <h4 className={`font-bold text-sm truncate pr-5 ${
                       selectedProjectId === project.id ? 'text-emerald-600 dark:text-emerald-400' : 'text-neutral-900 dark:text-neutral-100'
@@ -149,7 +172,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                       {project.description}
                     </p>
                   )}
-                  <div className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 font-medium">
+                  <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-neutral-500 dark:text-neutral-400 font-medium">
                     <Calendar className="h-3.5 w-3.5 text-neutral-400" />
                     <span>{new Date(project.created_at).toLocaleDateString()}</span>
                   </div>
@@ -160,13 +183,18 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
         )}
       </div>
 
-      {/* Right panel: Project Details */}
-      <div className="flex-1 flex flex-col overflow-hidden border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/40 p-5 rounded-2xl">
+      {/* Right panel: Project Details (Detail) */}
+      <div className={`${
+        mobileView === 'details' && selectedProject ? 'flex' : 'hidden lg:flex'
+      } flex-1 flex-col overflow-hidden border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/40 p-3.5 sm:p-5 rounded-2xl`}>
         {selectedProject ? (
           <RequirementsSection
             project={selectedProject}
             onDataChange={onDataChange}
             refreshTrigger={refreshTrigger}
+            onBackToProjects={() => setMobileView('list')}
+            onToggleListPane={() => setIsListPaneCollapsed(false)}
+            isListPaneCollapsed={isListPaneCollapsed}
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8 gap-4">
@@ -185,7 +213,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
 
       {/* Modal for creating project */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[480px] border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 rounded-2xl">
+        <DialogContent className="sm:max-w-[480px] max-w-[calc(100vw-2rem)] border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 rounded-2xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold tracking-tight">Nuevo Proyecto</DialogTitle>
           </DialogHeader>

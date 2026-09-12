@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
-import { ArrowUpCircle } from 'lucide-react';
+import { ArrowUpCircle, Menu } from 'lucide-react';
 import { db } from './services/db';
 import { startAlarmChecker, stopAlarmChecker, requestNotificationPermission } from './services/alarms';
 import './App.css';
@@ -24,6 +24,10 @@ function App() {
   const [syncInterval, setSyncInterval] = useState<number>(() => db.getSyncInterval());
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(() => db.getLastSyncedAt());
   
+  // Responsive sidebar states
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
   // Custom navigation and command palette states
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -34,6 +38,21 @@ function App() {
   // Software update states
   const [availableUpdate, setAvailableUpdate] = useState<any>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Auto-adapt sidebar state for vertical / portrait displays
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mediaQuery = window.matchMedia('(orientation: portrait)');
+    const handleOrientationChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      if (e.matches && window.innerWidth <= 1100) {
+        setIsSidebarCollapsed(true);
+      }
+    };
+
+    handleOrientationChange(mediaQuery);
+    mediaQuery.addEventListener('change', handleOrientationChange);
+    return () => mediaQuery.removeEventListener('change', handleOrientationChange);
+  }, []);
 
   // Check for updates on mount
   useEffect(() => {
@@ -343,16 +362,32 @@ function App() {
         urgentCount={urgentCount}
         lastSyncedAt={lastSyncedAt}
         syncInterval={syncInterval}
+        isOpen={isMobileSidebarOpen}
+        onClose={() => setIsMobileSidebarOpen(false)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
       />
 
       <main className="main-content">
         <header className="content-header">
-          <h2 className="content-title">{getSectionTitle()}</h2>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden h-8 w-8 text-neutral-600 dark:text-neutral-300 hover:text-neutral-950 dark:hover:text-neutral-50 flex-shrink-0"
+              onClick={() => setIsMobileSidebarOpen(true)}
+              title="Abrir menú"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+            <h2 className="content-title">{getSectionTitle()}</h2>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             {isSyncing && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-blue)', fontSize: '0.85rem' }} className="select-none">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-blue)', fontSize: '0.8rem' }} className="select-none">
                 <span className="spin-animation" style={{ display: 'inline-block' }}>↻</span>
-                <span>Sincronizando...</span>
+                <span className="hidden sm:inline">Sincronizando...</span>
               </div>
             )}
             
@@ -362,10 +397,11 @@ function App() {
                 size="sm"
                 onClick={handleApplyUpdate}
                 disabled={isUpdating}
-                className="h-8 text-xs font-semibold gap-1.5 border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-700 dark:hover:text-emerald-300 animate-pulse cursor-pointer shadow-sm"
+                className="h-7.5 sm:h-8 text-xs font-semibold gap-1.5 border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-700 dark:hover:text-emerald-300 animate-pulse cursor-pointer shadow-sm"
               >
                 <ArrowUpCircle className="h-3.5 w-3.5" />
-                <span>{isUpdating ? 'Actualizando...' : `Actualizar a v${availableUpdate.version}`}</span>
+                <span className="hidden sm:inline">{isUpdating ? 'Actualizando...' : `Actualizar a v${availableUpdate.version}`}</span>
+                <span className="sm:hidden">{isUpdating ? '...' : `v${availableUpdate.version}`}</span>
               </Button>
             )}
           </div>
@@ -452,18 +488,18 @@ function App() {
 
       {/* Floating Focus Timer Widget */}
       {activeChallenge && (
-        <div className="absolute top-4 right-4 z-50 group flex flex-col items-end">
+        <div className="fixed bottom-4 right-4 sm:bottom-auto sm:top-3 sm:right-4 z-50 group flex flex-col items-end max-w-[calc(100vw-2rem)]">
           {/* Main pill-shaped clock widget */}
-          <div className="backdrop-blur-md bg-neutral-900/90 border border-neutral-750 text-neutral-50 px-4.5 py-2.5 rounded-full shadow-2xl flex items-center gap-3 select-none transition-all duration-200 hover:scale-102 hover:border-emerald-500/40 cursor-default">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
+          <div className="backdrop-blur-md bg-neutral-900/90 border border-neutral-750 text-neutral-50 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full shadow-2xl flex items-center gap-2 sm:gap-3 select-none transition-all duration-200 hover:scale-102 hover:border-emerald-500/40 cursor-default">
+            <span className="h-2 sm:h-2.5 w-2 sm:w-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
             
-            <div className="flex flex-col text-right leading-none max-w-[140px] truncate">
-              <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider truncate">{activeChallenge.projectName}</span>
+            <div className="flex flex-col text-right leading-none max-w-[100px] sm:max-w-[140px] truncate">
+              <span className="text-[10px] sm:text-xs font-bold text-neutral-400 uppercase tracking-wider truncate">{activeChallenge.projectName}</span>
             </div>
             
-            <span className="border-l border-neutral-700 h-5"></span>
+            <span className="border-l border-neutral-700 h-4 sm:h-5"></span>
             
-            <span className="font-mono text-base font-black tabular-nums tracking-tight text-emerald-400">
+            <span className="font-mono text-sm sm:text-base font-black tabular-nums tracking-tight text-emerald-400">
               {(() => {
                 const secs = activeChallenge.remainingSeconds;
                 const hrs = Math.floor(secs / 3600);
@@ -479,8 +515,8 @@ function App() {
           </div>
 
           {/* Hover Card Panel */}
-          <div className="absolute right-0 top-[48px] mt-1.5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200 translate-y-1 group-hover:translate-y-0 z-50">
-            <Card className="w-[320px] border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-2xl p-4.5 rounded-2xl flex flex-col gap-3.5">
+          <div className="absolute right-0 bottom-[44px] sm:bottom-auto sm:top-[44px] mb-1 sm:mb-0 sm:mt-1.5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200 z-50">
+            <Card className="w-[290px] sm:w-[320px] max-w-[calc(100vw-2rem)] border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-2xl p-4 sm:p-4.5 rounded-2xl flex flex-col gap-3">
               <div className="space-y-1">
                 <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
                   Requerimiento Enfocado
@@ -496,7 +532,7 @@ function App() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 text-xs font-semibold px-2.5 flex-1 border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-lg"
+                  className="h-8 text-xs font-semibold px-2 flex-1 border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-lg"
                   onClick={handlePauseToggle}
                 >
                   {activeChallenge.isPaused ? 'Reanudar' : 'Pausar'}
@@ -504,14 +540,14 @@ function App() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 text-xs font-semibold px-2.5 flex-1 text-red-600 dark:text-red-400 border-red-500/20 hover:bg-red-500/10 rounded-lg"
+                  className="h-8 text-xs font-semibold px-2 flex-1 text-red-600 dark:text-red-400 border-red-500/20 hover:bg-red-500/10 rounded-lg"
                   onClick={handleCancelChallenge}
                 >
                   Terminar
                 </Button>
                 <Button
                   size="sm"
-                  className="h-8 text-xs font-bold px-2.5 flex-1 text-white bg-emerald-500 hover:bg-emerald-600 border-none rounded-lg shadow-sm"
+                  className="h-8 text-xs font-bold px-2 flex-1 text-white bg-emerald-500 hover:bg-emerald-600 border-none rounded-lg shadow-sm"
                   onClick={() => handleCompleteTask(activeChallenge.requirementId)}
                 >
                   Completar

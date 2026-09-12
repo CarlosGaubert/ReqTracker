@@ -9,7 +9,8 @@ import {
   CheckCircle2, 
   Timer,
   ChevronRight,
-  Trophy
+  Trophy,
+  ArrowLeft
 } from 'lucide-react';
 import { db, Requirement } from '../services/db';
 import { Card, CardContent } from '@/components/ui/card';
@@ -52,6 +53,7 @@ export const ChallengeSection: React.FC<ChallengeSectionProps> = ({
   // Focusburst timing states
   const [focusType, setFocusType] = useState<'minutes' | 'hours'>('minutes');
   const [focusValue, setFocusValue] = useState<number>(25);
+  const [mobileStep, setMobileStep] = useState<'select' | 'configure'>('select');
 
   useEffect(() => {
     const projects = db.getProjects();
@@ -120,8 +122,8 @@ export const ChallengeSection: React.FC<ChallengeSectionProps> = ({
     const progressPercent = ((activeChallenge.totalSeconds - activeChallenge.remainingSeconds) / activeChallenge.totalSeconds) * 100;
     
     return (
-      <div className="flex flex-col items-center justify-center h-full max-w-[650px] mx-auto gap-6 select-none animate-in fade-in duration-200">
-        <Card className="w-full border border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-900/30 shadow-xl rounded-3xl overflow-hidden p-7 flex flex-col items-center gap-6">
+      <div className="flex flex-col items-center justify-center h-full max-w-[650px] mx-auto gap-4 sm:gap-6 select-none animate-in fade-in duration-200 overflow-y-auto py-4">
+        <Card className="w-full border border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-900/30 shadow-xl rounded-3xl overflow-hidden p-5 sm:p-7 flex flex-col items-center gap-5 sm:gap-6">
           <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest bg-emerald-500/10 dark:bg-emerald-500/10 px-3.5 py-1.5 rounded-full">
             <Flame className="h-4 w-4 fill-emerald-500 animate-pulse" />
             <span>Desafío Focus Activo</span>
@@ -131,13 +133,13 @@ export const ChallengeSection: React.FC<ChallengeSectionProps> = ({
             <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
               {activeChallenge.projectName}
             </span>
-            <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-50 px-4 leading-relaxed truncate max-w-full">
+            <h3 className="text-base sm:text-lg font-bold text-neutral-900 dark:text-neutral-50 px-2 sm:px-4 leading-relaxed truncate max-w-full">
               {activeChallenge.requirementTitle}
             </h3>
           </div>
 
           {/* Large Countdown Clock */}
-          <div className="text-7xl font-black tracking-tight text-neutral-900 dark:text-neutral-50 font-mono my-3 tabular-nums">
+          <div className="text-5xl sm:text-7xl font-black tracking-tight text-neutral-900 dark:text-neutral-50 font-mono my-2 sm:my-3 tabular-nums">
             {formatTime(activeChallenge.remainingSeconds)}
           </div>
 
@@ -155,23 +157,23 @@ export const ChallengeSection: React.FC<ChallengeSectionProps> = ({
             </div>
           </div>
 
-          <Separator className="bg-neutral-200 dark:bg-neutral-800 my-1" />
+          <Separator className="bg-neutral-200 dark:bg-neutral-800 my-0.5" />
 
           {/* Control Buttons */}
-          <div className="flex items-center justify-center gap-4 w-full pt-1">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full pt-1">
             <Button
               variant="outline"
               size="lg"
-              className="h-11 text-sm font-semibold gap-2 border-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300 flex-1 rounded-xl"
+              className="h-10 sm:h-11 text-xs sm:text-sm font-semibold gap-2 border-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300 w-full sm:flex-1 rounded-xl"
               onClick={onCancelChallenge}
             >
-              <XCircle className="h-5 w-5" />
+              <XCircle className="h-4.5 w-4.5" />
               <span>Finalizar Desafío</span>
             </Button>
 
             <Button
               size="lg"
-              className={`h-11 text-sm font-semibold gap-2 flex-1 rounded-xl shadow-sm ${
+              className={`h-10 sm:h-11 text-xs sm:text-sm font-semibold gap-2 w-full sm:flex-1 rounded-xl shadow-sm ${
                 activeChallenge.isPaused 
                   ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
                   : 'bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200'
@@ -180,12 +182,12 @@ export const ChallengeSection: React.FC<ChallengeSectionProps> = ({
             >
               {activeChallenge.isPaused ? (
                 <>
-                  <Play className="h-5 w-5 fill-white" />
+                  <Play className="h-4.5 w-4.5 fill-white" />
                   <span>Reanudar Enfoque</span>
                 </>
               ) : (
                 <>
-                  <Pause className="h-5 w-5 fill-current" />
+                  <Pause className="h-4.5 w-4.5 fill-current" />
                   <span>Pausar Enfoque</span>
                 </>
               )}
@@ -194,10 +196,10 @@ export const ChallengeSection: React.FC<ChallengeSectionProps> = ({
 
           <Button
             variant="outline"
-            className="w-full h-11 text-sm font-semibold gap-2 border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 rounded-xl"
+            className="w-full h-10 sm:h-11 text-xs sm:text-sm font-semibold gap-2 border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 rounded-xl"
             onClick={() => onCompleteTask(activeChallenge.requirementId)}
           >
-            <CheckCircle2 className="h-5 w-5" />
+            <CheckCircle2 className="h-4.5 w-4.5" />
             <span>Marcar Requerimiento como Completado</span>
           </Button>
         </Card>
@@ -207,10 +209,12 @@ export const ChallengeSection: React.FC<ChallengeSectionProps> = ({
 
   // If NO active challenge, display the Selection Screen
   return (
-    <div className="flex h-full w-full overflow-hidden gap-5 select-none">
+    <div className="flex h-full w-full overflow-hidden gap-4 lg:gap-5 select-none">
       
       {/* Left panel: List of pending requirements to choose from */}
-      <div className="w-[340px] flex-shrink-0 border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/40 p-4.5 rounded-2xl flex flex-col gap-4 overflow-y-auto">
+      <div className={`${
+        mobileStep === 'select' || !selectedTask ? 'flex w-full' : 'hidden lg:flex'
+      } lg:w-72 xl:w-80 flex-shrink-0 border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/40 p-3.5 sm:p-4.5 rounded-2xl flex-col gap-3.5 sm:gap-4 overflow-y-auto`}>
         <div className="space-y-1">
           <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
             <Timer className="h-5 w-5 text-neutral-500" />
@@ -244,7 +248,7 @@ export const ChallengeSection: React.FC<ChallengeSectionProps> = ({
             No se encontraron coincidencias.
           </p>
         ) : (
-          <div className="flex flex-col gap-2.5 flex-1">
+          <div className="flex flex-col gap-2 sm:gap-2.5 flex-1">
             {filteredTasks.map(t => (
               <Card
                 key={t.id}
@@ -253,9 +257,12 @@ export const ChallengeSection: React.FC<ChallengeSectionProps> = ({
                     ? 'border-emerald-500 bg-emerald-50/10 dark:bg-emerald-950/20 shadow-sm'
                     : 'border-neutral-200 dark:border-neutral-800 bg-white/40 dark:bg-transparent'
                 }`}
-                onClick={() => setSelectedTaskId(t.id)}
+                onClick={() => {
+                  setSelectedTaskId(t.id);
+                  setMobileStep('configure');
+                }}
               >
-                <CardContent className="p-3.5 flex flex-col gap-1.5">
+                <CardContent className="p-3 sm:p-3.5 flex flex-col gap-1 sm:gap-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide truncate max-w-[200px]">
                       {t.projectName}
@@ -279,11 +286,24 @@ export const ChallengeSection: React.FC<ChallengeSectionProps> = ({
       </div>
 
       {/* Right panel: Focusburst Setup & Presets */}
-      <div className="flex-1 border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/40 p-5 rounded-2xl flex flex-col overflow-y-auto">
+      <div className={`${
+        mobileStep === 'configure' && selectedTask ? 'flex' : 'hidden lg:flex'
+      } flex-1 border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/40 p-4 sm:p-5 rounded-2xl flex-col overflow-y-auto`}>
         {selectedTask ? (
-          <div className="flex flex-col gap-5 h-full animate-in fade-in slide-in-from-right-1 duration-200">
+          <div className="flex flex-col gap-4 sm:gap-5 h-full animate-in fade-in slide-in-from-right-1 duration-200">
+            {/* Mobile Back Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="lg:hidden self-start -ml-2 text-xs font-semibold gap-1.5 text-neutral-600 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-neutral-50 h-8 px-2"
+              onClick={() => setMobileStep('select')}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Cambiar Tarea</span>
+            </Button>
+
             {/* Header: Selected Task Details */}
-            <div className="space-y-1.5">
+            <div className="space-y-1 sm:space-y-1.5">
               <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
                 {selectedTask.projectName}
               </span>
