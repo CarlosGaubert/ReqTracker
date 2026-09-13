@@ -4,7 +4,6 @@ import { db, Idea } from '../services/db';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -14,81 +13,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-const parseInlineMarkdown = (text: string): React.ReactNode => {
-  const regex = /(\*\*.*?\*\*)|(`.*?`)/g;
-  let lastIndex = 0;
-  let match;
-  let key = 0;
-  const parts: React.ReactNode[] = [];
+import { MarkdownRenderer } from './MarkdownRenderer';
+import { MarkdownEditor } from './MarkdownEditor';
 
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(text.substring(lastIndex, match.index));
-    }
-
-    const [, bold, code] = match;
-    if (bold) {
-      parts.push(<strong key={key++} className="font-bold text-neutral-850 dark:text-neutral-100">{bold.slice(2, -2)}</strong>);
-    } else if (code) {
-      parts.push(<code key={key++} className="bg-neutral-100 dark:bg-neutral-900 px-1 py-0.5 rounded text-[10px] font-mono text-emerald-600 dark:text-emerald-450">{code.slice(1, -1)}</code>);
-    }
-    lastIndex = regex.lastIndex;
-  }
-
-  if (lastIndex < text.length) {
-    parts.push(text.substring(lastIndex));
-  }
-
-  return parts.length > 0 ? <>{parts}</> : text;
-};
-
-const renderMarkdown = (text: string) => {
-  const lines = text.split('\n');
-  return lines.map((line, idx) => {
-    const trimmed = line.trim();
-    
-    // Checkboxes
-    if (trimmed.startsWith('[x] ') || trimmed.startsWith('[ ] ')) {
-      const checked = trimmed.startsWith('[x] ');
-      return (
-        <div key={idx} className="flex items-center gap-1.5 text-neutral-500 dark:text-neutral-400">
-          <input 
-            type="checkbox" 
-            checked={checked} 
-            readOnly 
-            className="h-3 w-3 rounded border-neutral-300 dark:border-neutral-700 pointer-events-none accent-emerald-500 opacity-80" 
-          />
-          <span className={checked ? 'line-through opacity-60' : ''}>
-            {parseInlineMarkdown(trimmed.substring(4))}
-          </span>
-        </div>
-      );
-    }
-
-    // Bullets
-    if (trimmed.startsWith('- ')) {
-      return (
-        <li key={idx} className="list-disc list-inside text-neutral-500 dark:text-neutral-400 pl-1">
-          {parseInlineMarkdown(trimmed.substring(2))}
-        </li>
-      );
-    }
-
-    // Headers
-    if (trimmed.startsWith('# ')) {
-      return <h1 key={idx} className="text-sm font-bold text-neutral-800 dark:text-neutral-200 mt-1 mb-0.5">{parseInlineMarkdown(trimmed.substring(2))}</h1>;
-    }
-    if (trimmed.startsWith('## ')) {
-      return <h2 key={idx} className="text-xs font-bold text-neutral-800 dark:text-neutral-200 mt-1 mb-0.5">{parseInlineMarkdown(trimmed.substring(3))}</h2>;
-    }
-
-    return (
-      <div key={idx} className="min-h-[1rem] text-neutral-500 dark:text-neutral-400">
-        {parseInlineMarkdown(line)}
-      </div>
-    );
-  });
-};
 interface IdeasSectionProps {
   onDataChange: () => void;
   refreshTrigger: number;
@@ -247,7 +174,7 @@ export const IdeasSection: React.FC<IdeasSectionProps> = ({
                 </div>
                 
                 <div className="text-sm leading-relaxed overflow-hidden break-words select-text line-clamp-4 flex-1 space-y-1 text-neutral-700 dark:text-neutral-300">
-                  {renderMarkdown(idea.content)}
+                  <MarkdownRenderer content={idea.content} compact />
                 </div>
                 
                 <div className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 font-medium mt-auto select-none">
@@ -264,7 +191,7 @@ export const IdeasSection: React.FC<IdeasSectionProps> = ({
 
       {/* Modal for creating/editing idea */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[540px] max-w-[calc(100vw-2rem)] border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 rounded-2xl p-4 sm:p-6">
+        <DialogContent className="sm:max-w-[720px] max-w-[calc(100vw-2rem)] max-h-[92vh] overflow-y-auto border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 rounded-2xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold tracking-tight">
               {editingIdea ? 'Editar Idea' : 'Nueva Idea'}
@@ -286,16 +213,14 @@ export const IdeasSection: React.FC<IdeasSectionProps> = ({
             </div>
             <div className="space-y-2">
               <Label htmlFor="idea-content" className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                Contenido / Notas
+                Contenido / Notas (Markdown)
               </Label>
-              <Textarea
-                id="idea-content"
+              <MarkdownEditor
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Escribe tus ideas detalladamente aquí..."
-                rows={6}
-                required
-                className="bg-neutral-50 dark:bg-neutral-900/50 border-neutral-200 dark:border-neutral-800 focus-visible:ring-emerald-500 resize-none"
+                onChange={setContent}
+                placeholder="Escribe tus ideas en formato Markdown aquí..."
+                rows={8}
+                minHeight="220px"
               />
             </div>
             <DialogFooter className="pt-2 gap-2">

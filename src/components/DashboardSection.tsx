@@ -15,6 +15,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { MarkdownRenderer } from './MarkdownRenderer';
 
 interface DashboardSectionProps {
   onNavigateToSection: (section: 'projects' | 'ideas' | 'settings', projectId?: string | null) => void;
@@ -93,36 +94,6 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
     month: 'long',
     day: 'numeric',
   });
-
-  // Simple Inline Markdown parser for recent ideas cards
-  const renderIdeaPreview = (text: string) => {
-    const lines = text.split('\n').slice(0, 3); // Preview first 3 lines
-    return lines.map((line, idx) => {
-      // Bullets
-      if (line.trim().startsWith('- ')) {
-        return (
-          <li key={idx} className="list-disc list-inside text-neutral-500 dark:text-neutral-400 text-xs">
-            {line.substring(2)}
-          </li>
-        );
-      }
-      // Checkboxes
-      if (line.trim().startsWith('[x] ') || line.trim().startsWith('[ ] ')) {
-        const checked = line.trim().startsWith('[x] ');
-        return (
-          <div key={idx} className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-            <input type="checkbox" checked={checked} readOnly className="h-3 w-3 rounded pointer-events-none opacity-60" />
-            <span className={checked ? 'line-through opacity-60' : ''}>{line.substring(4)}</span>
-          </div>
-        );
-      }
-      return (
-        <p key={idx} className="text-xs text-neutral-500 dark:text-neutral-400 truncate leading-relaxed">
-          {line}
-        </p>
-      );
-    });
-  };
 
   return (
     <div className="flex flex-col gap-6 h-full overflow-y-auto pr-1 pb-8">
@@ -327,8 +298,8 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
                     <h5 className="font-bold text-sm text-neutral-900 dark:text-neutral-50 truncate">
                       {idea.title}
                     </h5>
-                    <div className="space-y-1 overflow-hidden pr-2 text-xs font-medium text-neutral-600 dark:text-neutral-300">
-                      {renderIdeaPreview(idea.content)}
+                    <div className="space-y-1 overflow-hidden pr-2 text-xs font-medium text-neutral-600 dark:text-neutral-300 line-clamp-3">
+                      <MarkdownRenderer content={idea.content} compact />
                     </div>
                   </CardContent>
                 </Card>

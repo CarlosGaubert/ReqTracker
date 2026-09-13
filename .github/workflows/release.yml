@@ -65,17 +65,21 @@ jobs:
           releaseBody: |
             ### 🚀 Novedades de ReqTracker v__VERSION__:
 
-            #### 📱 Diseño Responsivo Integral
-            - **Menú Lateral Adaptativo**: Modo *drawer* con botón hamburguesa y fondo desenfocado (*backdrop blur*) para resoluciones móviles y pantallas estrechas.
-            - **Modo Compacto de Barra Lateral**: Soporte para colapsar la barra lateral a 72px (solo iconos) en escritorio y tablets para maximizar el área de trabajo.
-            - **Patrón Maestro-Detalle**: En pantallas estrechas, navegación fluida entre la lista de proyectos y la vista de tareas con botón directo *"← Volver a Proyectos"*.
-            - **Modales y Diálogos Fluidos**: Adaptación de `CommandPalette` y ventanas modales con márgenes de seguridad para evitar desbordes en cualquier resolución.
+            #### 💡 Editor de Markdown Completo en Ideas
+            - **Edición Enriquecida**: Soporte nativo para sintaxis Markdown al redactar o editar pensamientos e ideas.
+            - **Barra de Formato con un Clic**: Acceso rápido para Encabezados (H1, H2, H3), Negrita, Cursiva, Tachado, Checklists (`- [ ]`), Listas de viñetas, Listas ordenadas, Citas, Código, Enlaces y Separadores.
+            - **Envoltorio Inteligente**: Al seleccionar texto en el editor y presionar un botón de formato, el texto se envuelve automáticamente sin alterar la posición del cursor.
+            - **Pestañas Duales (Escribir / Vista Previa)**: Conmutación instantánea para verificar cómo se renderizará el contenido en tiempo real antes de guardar.
+            - **Atajos de Teclado**: Soporte para `Ctrl+B` / `Cmd+B` (negrita), `Ctrl+I` / `Cmd+I` (cursiva) y sangría de 2 espacios con la tecla `Tab`.
 
-            #### 🖥️ Soporte Especializado para Pantallas Verticales (Portrait)
-            - **Detección Automática de Orientación**: Colapso automático de la barra lateral al detectar pantallas en orientación vertical (como monitores rotados 1080x1920).
-            - **Tablero Kanban con Snap Scrolling**: En orientación vertical, las columnas de tareas conservan un ancho legible (≥ 280px) con desplazamiento horizontal asistido (*snap scroll*) y scroll vertical independiente.
-            - **Colapso del Panel de Proyectos**: Posibilidad de ocultar la lista de proyectos en pantallas de escritorio y verticales para otorgar el 100% del ancho al tablero Kanban.
-            - **Dashboard Reorganizado**: Apilamiento vertical fluido de métricas, tareas pendientes críticas e ideas recientes.
+            #### 📖 Herramientas Didácticas Interactivas ("Aprende Markdown")
+            - **Guía Integrada Desplegable**: Panel con ejemplos visuales organizados por categorías (Formato de Texto, Estructura, Listas/Tareas, Citas y Código).
+            - **Botón "+ Insertar" en cada Ejemplo**: Permite a cualquier usuario insertar la sintaxis en su nota con un solo clic para aprender experimentando en vivo.
+            - **Plantillas Rápidas**: Menú con plantillas prediseñadas listas para usar (*Idea de Proyecto*, *Checklist de Tareas*, *Notas Rápidas*).
+
+            #### 🎨 Renderizador de Markdown Nativo
+            - **Tarjetas de Ideas y Dashboard**: Renderizado limpio y adaptativo para temas claro y oscuro.
+            - **Bloques de Código y Enlaces**: Bloques multilínea con cabecera de lenguaje y botón para copiar con un clic; apertura segura de enlaces web en el navegador del sistema.
 
             ---
             Descarga el instalador correspondiente a tu sistema operativo para instalar ReqTracker.
