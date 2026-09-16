@@ -13,7 +13,8 @@ import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { ArrowUpCircle, Menu } from 'lucide-react';
 import { db } from './services/db';
-import { startAlarmChecker, stopAlarmChecker, requestNotificationPermission } from './services/alarms';
+import { startAlarmChecker, stopAlarmChecker, requestNotificationPermission, getRequirementUrgency } from './services/alarms';
+import { NotificationCenter } from './components/NotificationCenter';
 import './App.css';
 
 function App() {
@@ -260,13 +261,11 @@ function App() {
   // Update urgent count for sidebar indicator
   useEffect(() => {
     const requirements = db.getRequirements();
-    const now = new Date();
+    const settings = db.getAlarmSettings();
     const urgent = requirements.filter(r => {
-      if (r.status === 'done' || !r.estimated_date) return false;
-      const dueDate = new Date(`${r.estimated_date}T23:59:59`);
-      const timeDiff = dueDate.getTime() - now.getTime();
-      const daysDiff = timeDiff / (1000 * 3600 * 24);
-      return daysDiff <= 3;
+      if (r.status === 'done' || !r.alarm_enabled || !r.estimated_date) return false;
+      const urgency = getRequirementUrgency(r, settings.advanceDays);
+      return urgency.category !== 'normal' && !urgency.isSnoozed;
     });
     setUrgentCount(urgent.length);
   }, [refreshTrigger]);
@@ -384,6 +383,16 @@ function App() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            {/* In-App Notification Center */}
+            <NotificationCenter
+              onNavigateToProject={(projId) => {
+                setSelectedProjectId(projId);
+                setActiveSection('projects');
+              }}
+              onDataChange={handleDataChange}
+              refreshTrigger={refreshTrigger}
+            />
+
             {isSyncing && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-blue)', fontSize: '0.8rem' }} className="select-none">
                 <span className="spin-animation" style={{ display: 'inline-block' }}>↻</span>

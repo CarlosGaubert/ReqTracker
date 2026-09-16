@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Bell, BellOff, Calendar, AlertCircle, List, Kanban, ArrowLeft, PanelLeftOpen } from 'lucide-react';
+import { Plus, Trash2, Bell, BellOff, Calendar, AlertCircle, List, Kanban, ArrowLeft, PanelLeftOpen, Clock, Moon } from 'lucide-react';
 import { db, Project, Requirement } from '../services/db';
-import { checkAlarms } from '../services/alarms';
+import { checkAlarms, getRequirementUrgency } from '../services/alarms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -45,6 +45,7 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
   const [description, setDescription] = useState('');
   const [estimatedDate, setEstimatedDate] = useState('');
   const [alarmEnabled, setAlarmEnabled] = useState(true);
+  const [alarmDaysBefore, setAlarmDaysBefore] = useState<number>(() => db.getAlarmSettings().advanceDays);
 
   const loadRequirements = () => {
     const list = db.getRequirementsByProject(project.id);
@@ -74,6 +75,7 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
       created_at: new Date().toISOString(),
       estimated_date: estimatedDate,
       alarm_enabled: alarmEnabled,
+      alarm_days_before: alarmDaysBefore,
       notified: false,
     };
 
@@ -82,6 +84,7 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
     setDescription('');
     setEstimatedDate('');
     setAlarmEnabled(true);
+    setAlarmDaysBefore(db.getAlarmSettings().advanceDays);
     setIsModalOpen(false);
     onDataChange();
     loadRequirements();
@@ -161,30 +164,50 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
 
   // Helper to determine urgency and get classes/info
   const getUrgencyInfo = (req: Requirement) => {
-    if (req.status === 'done') return { className: '', badge: null };
+    if (req.status === 'done' || !req.estimated_date) return { className: '', badge: null };
 
-    const now = new Date();
-    const dueDate = new Date(`${req.estimated_date}T23:59:59`);
-    const timeDiff = dueDate.getTime() - now.getTime();
-    const daysDiff = timeDiff / (1000 * 3600 * 24);
+    const settings = db.getAlarmSettings();
+    const urgency = getRequirementUrgency(req, settings.advanceDays);
 
-    if (daysDiff < 0) {
+    if (urgency.isSnoozed) {
+      return {
+        className: 'border-purple-500/30 bg-purple-500/5 dark:bg-purple-950/2',
+        badge: (
+          <Badge variant="outline" className="border-purple-200 dark:border-purple-950 bg-purple-500/10 text-purple-600 dark:text-purple-400 gap-1 py-0.5 px-2 select-none shadow-none text-[9px] font-semibold uppercase">
+            <Moon className="h-3 w-3" />
+            <span>Pospuesto</span>
+          </Badge>
+        ),
+      };
+    }
+
+    if (urgency.category === 'overdue') {
       return {
         className: 'border-red-500/30 bg-red-500/5 dark:bg-red-950/2',
         badge: (
           <Badge variant="outline" className="border-red-200 dark:border-red-950 bg-red-500/10 text-red-600 dark:text-red-400 gap-1 py-0.5 px-2 select-none shadow-none text-[9px] font-semibold uppercase">
             <AlertCircle className="h-3 w-3" />
-            <span>Vencido</span>
+            <span>{urgency.label}</span>
           </Badge>
         ),
       };
-    } else if (daysDiff <= 3) {
+    } else if (urgency.category === 'today') {
       return {
-        className: 'border-amber-500/30 bg-amber-500/5 dark:bg-amber-950/2',
+        className: 'border-amber-500/40 bg-amber-500/10 dark:bg-amber-950/4',
         badge: (
-          <Badge variant="outline" className="border-amber-250 dark:border-amber-950 bg-amber-500/10 text-amber-600 dark:text-amber-400 gap-1 py-0.5 px-2 select-none shadow-none text-[9px] font-semibold uppercase">
+          <Badge variant="outline" className="border-amber-300 dark:border-amber-900 bg-amber-500/20 text-amber-700 dark:text-amber-300 gap-1 py-0.5 px-2 select-none shadow-none text-[9px] font-bold uppercase">
+            <Clock className="h-3 w-3" />
+            <span>Vence hoy</span>
+          </Badge>
+        ),
+      };
+    } else if (urgency.category === 'soon') {
+      return {
+        className: 'border-sky-500/30 bg-sky-500/5 dark:bg-sky-950/2',
+        badge: (
+          <Badge variant="outline" className="border-sky-200 dark:border-sky-950 bg-sky-500/10 text-sky-600 dark:text-sky-400 gap-1 py-0.5 px-2 select-none shadow-none text-[9px] font-semibold uppercase">
             <AlertCircle className="h-3 w-3" />
-            <span>Vence pronto</span>
+            <span>{urgency.label}</span>
           </Badge>
         ),
       };
@@ -348,7 +371,13 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
                       onClick={(e) => handleToggleAlarm(req, e)}
                     >
                       {req.alarm_enabled ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
-                      <span>{req.alarm_enabled ? 'Alarma activa' : 'Alarma apagada'}</span>
+                      <span>
+                        {req.alarm_enabled 
+                          ? (req.alarm_days_before !== undefined 
+                              ? (req.alarm_days_before === 0 ? 'Alarma (mismo día)' : `Alarma (${req.alarm_days_before}d)`) 
+                              : 'Alarma activa') 
+                          : 'Alarma apagada'}
+                      </span>
                     </Button>
                     {urgency.badge}
                   </div>
@@ -510,17 +539,36 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
               />
             </div>
             
-            <div className="flex items-center gap-3 pt-1 select-none">
-              <Checkbox
-                id="req-alarm"
-                checked={alarmEnabled}
-                onCheckedChange={(checked) => setAlarmEnabled(!!checked)}
-                className="h-5.5 w-5.5 rounded-lg border-neutral-300 dark:border-neutral-700 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500 cursor-pointer"
-              />
-              <Label htmlFor="req-alarm" className="text-sm font-semibold text-neutral-700 dark:text-neutral-200 flex items-center gap-2 cursor-pointer">
-                <Bell className={`h-4.5 w-4.5 ${alarmEnabled ? 'text-emerald-500' : 'text-neutral-400'}`} />
-                <span>Activar alarma recordatorio (3 días antes)</span>
-              </Label>
+            <div className="space-y-3 pt-1 select-none">
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  id="req-alarm"
+                  checked={alarmEnabled}
+                  onCheckedChange={(checked) => setAlarmEnabled(!!checked)}
+                  className="h-5.5 w-5.5 rounded-lg border-neutral-300 dark:border-neutral-700 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500 cursor-pointer"
+                />
+                <Label htmlFor="req-alarm" className="text-sm font-semibold text-neutral-700 dark:text-neutral-200 flex items-center gap-2 cursor-pointer">
+                  <Bell className={`h-4.5 w-4.5 ${alarmEnabled ? 'text-emerald-500' : 'text-neutral-400'}`} />
+                  <span>Activar alarma recordatorio</span>
+                </Label>
+              </div>
+
+              {alarmEnabled && (
+                <div className="pl-8 flex items-center gap-2 text-xs">
+                  <span className="text-neutral-500 dark:text-neutral-400 font-medium">Avisar:</span>
+                  <select
+                    value={alarmDaysBefore}
+                    onChange={(e) => setAlarmDaysBefore(Number(e.target.value))}
+                    className="h-8 px-2.5 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-500 text-xs cursor-pointer"
+                  >
+                    <option value={0}>El mismo día del vencimiento</option>
+                    <option value={1}>1 día antes</option>
+                    <option value={2}>2 días antes</option>
+                    <option value={3}>3 días antes (Predeterminado)</option>
+                    <option value={7}>1 semana antes (7 días)</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             <DialogFooter className="pt-2 gap-2.5">

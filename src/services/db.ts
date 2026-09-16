@@ -18,8 +18,27 @@ export interface Requirement {
   estimated_date: string; // ISO format: YYYY-MM-DD
   alarm_enabled: boolean;
   notified: boolean;
+  alarm_days_before?: number; // Custom advance days (e.g. 0, 1, 2, 3, 7)
+  last_notified_date?: string; // 'YYYY-MM-DD' to prevent duplicate notifications on the same day while allowing multi-tier alerts
+  snoozed_until?: string; // ISO string until when alarms are silenced
   user_id?: string;
 }
+
+export interface AlarmSettings {
+  advanceDays: number;
+  notifyOnDueDate: boolean;
+  notifyOverdue: boolean;
+  desktopNotifications: boolean;
+  soundEnabled: boolean;
+}
+
+export const DEFAULT_ALARM_SETTINGS: AlarmSettings = {
+  advanceDays: 3,
+  notifyOnDueDate: true,
+  notifyOverdue: true,
+  desktopNotifications: true,
+  soundEnabled: true,
+};
 
 export interface Idea {
   id: string;
@@ -168,6 +187,21 @@ class DatabaseService {
     if (!saved) return null;
     const parsed = parseInt(saved, 10);
     return isNaN(parsed) ? null : parsed;
+  }
+
+  // --- Alarm Preferences ---
+  public getAlarmSettings(): AlarmSettings {
+    const saved = localStorage.getItem('alarm_settings');
+    if (!saved) return { ...DEFAULT_ALARM_SETTINGS };
+    try {
+      return { ...DEFAULT_ALARM_SETTINGS, ...JSON.parse(saved) };
+    } catch {
+      return { ...DEFAULT_ALARM_SETTINGS };
+    }
+  }
+
+  public saveAlarmSettings(settings: AlarmSettings) {
+    localStorage.setItem('alarm_settings', JSON.stringify(settings));
   }
 
   // --- Connection Test ---
@@ -404,8 +438,8 @@ class DatabaseService {
 
           if (error) throw error;
         } else if (item.action === 'upsert') {
-          // Exclude user_id property to avoid DB constraint failures since there is no session
-          const { user_id, ...cleanData } = item.data;
+          // Exclude user_id and local alarm fields from Supabase upsert to guarantee schema compatibility
+          const { user_id, alarm_days_before, last_notified_date, snoozed_until, ...cleanData } = item.data;
 
           const { error } = await this.supabase
             .from(table)
@@ -488,17 +522,26 @@ class DatabaseService {
       }
 
       // Merge Requirements
-      let mergedReqs: Requirement[] = (reqsRes.data || []).map((r: any) => ({
-        id: r.id,
-        project_id: r.project_id,
-        title: r.title,
-        description: r.description || '',
-        status: r.status,
-        created_at: r.created_at,
-        estimated_date: r.estimated_date,
-        alarm_enabled: r.alarm_enabled ?? true,
-        notified: r.notified ?? false,
-      }));
+      const currentReqs = this.getRequirements();
+      const currentReqsMap = new Map<string, Requirement>(currentReqs.map(r => [r.id, r]));
+
+      let mergedReqs: Requirement[] = (reqsRes.data || []).map((r: any) => {
+        const local = currentReqsMap.get(r.id);
+        return {
+          id: r.id,
+          project_id: r.project_id,
+          title: r.title,
+          description: r.description || '',
+          status: r.status,
+          created_at: r.created_at,
+          estimated_date: r.estimated_date,
+          alarm_enabled: r.alarm_enabled ?? true,
+          notified: r.notified ?? false,
+          alarm_days_before: r.alarm_days_before ?? local?.alarm_days_before,
+          last_notified_date: r.last_notified_date ?? local?.last_notified_date,
+          snoozed_until: r.snoozed_until ?? local?.snoozed_until,
+        };
+      });
 
       for (const q of activeQueue) {
         if (q.type === 'requirement') {

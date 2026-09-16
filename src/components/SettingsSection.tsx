@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { isPermissionGranted } from '@tauri-apps/plugin-notification';
-import { Save, RefreshCw, AlertTriangle, Key, HelpCircle, Copy, Check, Clock, Radio, ShieldCheck } from 'lucide-react';
-import { db, SupabaseConfig } from '../services/db';
+import { Save, RefreshCw, AlertTriangle, Key, HelpCircle, Copy, Check, Clock, Radio, ShieldCheck, Bell, Volume2 } from 'lucide-react';
+import { db, SupabaseConfig, AlarmSettings } from '../services/db';
+import { playAlarmChime } from '../services/alarms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 
 const SQL_SCRIPT = `-- 1. Tabla de Proyectos
@@ -118,7 +120,14 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [copied, setCopied] = useState(false);
   const [notificationsAllowed, setNotificationsAllowed] = useState(true);
+  const [alarmSettings, setAlarmSettings] = useState<AlarmSettings>(() => db.getAlarmSettings());
   const [, setTick] = useState(0);
+
+  const handleUpdateAlarmSettings = (updated: Partial<AlarmSettings>) => {
+    const newSettings = { ...alarmSettings, ...updated };
+    setAlarmSettings(newSettings);
+    db.saveAlarmSettings(newSettings);
+  };
 
   // Periodic tick to refresh relative time labels
   useEffect(() => {
@@ -215,11 +224,136 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
           <CardContent className="p-4 flex items-center gap-3 text-sm font-medium">
             <AlertTriangle className="h-5 w-5 flex-shrink-0" />
             <div className="flex-1">
-              <span className="font-bold">Notificaciones deshabilitadas:</span> Permite las notificaciones del sistema para que las alarmas de tus requerimientos puedan avisarte oportunamente.
+              <span className="font-bold">Notificaciones deshabilitadas en el sistema:</span> Permite las notificaciones del sistema para que las alarmas de tus requerimientos puedan avisarte oportunamente en el escritorio.
             </div>
           </CardContent>
         </Card>
       )}
+
+      {/* 1.2 Preferencias de Alarmas y Recordatorios */}
+      <div className="space-y-3">
+        <div>
+          <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+            <Bell className="h-4.5 w-4.5 text-amber-500" />
+            <span>Preferencias de Alarmas & Recordatorios</span>
+          </h3>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+            Personaliza cómo y cuándo recibir alertas sobre vencimientos de requerimientos.
+          </p>
+        </div>
+
+        <div className="p-4.5 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/30 space-y-4">
+          
+          {/* Anticipación predeterminada */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-neutral-100 dark:border-neutral-800/60">
+            <div>
+              <Label className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+                Anticipación predeterminada
+              </Label>
+              <p className="text-xs text-neutral-450 dark:text-neutral-400">
+                Tiempo previo de aviso para nuevos requerimientos creados.
+              </p>
+            </div>
+            <select
+              value={alarmSettings.advanceDays}
+              onChange={(e) => handleUpdateAlarmSettings({ advanceDays: Number(e.target.value) })}
+              className="h-9 px-3 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 font-medium text-xs cursor-pointer focus:ring-1 focus:ring-emerald-500"
+            >
+              <option value={0}>El mismo día del vencimiento</option>
+              <option value={1}>1 día antes</option>
+              <option value={2}>2 días antes</option>
+              <option value={3}>3 días antes (Predeterminado)</option>
+              <option value={7}>1 semana antes (7 días)</option>
+            </select>
+          </div>
+
+          {/* Avisar el día de vencimiento */}
+          <div className="flex items-center justify-between gap-3 pb-3 border-b border-neutral-100 dark:border-neutral-800/60">
+            <div>
+              <Label htmlFor="notify-due-date" className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 cursor-pointer">
+                Aviso el día de vencimiento (Día D)
+              </Label>
+              <p className="text-xs text-neutral-450 dark:text-neutral-400">
+                Envía una alerta el día exacto en que vence el requerimiento.
+              </p>
+            </div>
+            <Checkbox
+              id="notify-due-date"
+              checked={alarmSettings.notifyOnDueDate}
+              onCheckedChange={(checked) => handleUpdateAlarmSettings({ notifyOnDueDate: !!checked })}
+              className="h-5 w-5 rounded-md border-neutral-300 dark:border-neutral-700 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500 cursor-pointer"
+            />
+          </div>
+
+          {/* Avisar si está vencido */}
+          <div className="flex items-center justify-between gap-3 pb-3 border-b border-neutral-100 dark:border-neutral-800/60">
+            <div>
+              <Label htmlFor="notify-overdue" className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 cursor-pointer">
+                Recordatorio de requerimientos vencidos
+              </Label>
+              <p className="text-xs text-neutral-450 dark:text-neutral-400">
+                Mantiene una alerta diaria mientras la tarea permanezca incompleta o no se posponga.
+              </p>
+            </div>
+            <Checkbox
+              id="notify-overdue"
+              checked={alarmSettings.notifyOverdue}
+              onCheckedChange={(checked) => handleUpdateAlarmSettings({ notifyOverdue: !!checked })}
+              className="h-5 w-5 rounded-md border-neutral-300 dark:border-neutral-700 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500 cursor-pointer"
+            />
+          </div>
+
+          {/* Notificaciones de escritorio */}
+          <div className="flex items-center justify-between gap-3 pb-3 border-b border-neutral-100 dark:border-neutral-800/60">
+            <div>
+              <Label htmlFor="desktop-notifications" className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 cursor-pointer">
+                Notificaciones de escritorio del sistema (OS)
+              </Label>
+              <p className="text-xs text-neutral-450 dark:text-neutral-400">
+                Dispara las notificaciones nativas de macOS / Windows en segundo plano.
+              </p>
+            </div>
+            <Checkbox
+              id="desktop-notifications"
+              checked={alarmSettings.desktopNotifications}
+              onCheckedChange={(checked) => handleUpdateAlarmSettings({ desktopNotifications: !!checked })}
+              className="h-5 w-5 rounded-md border-neutral-300 dark:border-neutral-700 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500 cursor-pointer"
+            />
+          </div>
+
+          {/* Sonido de alerta in-app */}
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <Label htmlFor="sound-enabled" className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 cursor-pointer">
+                Sonido de alerta (Chime sintetizado)
+              </Label>
+              <p className="text-xs text-neutral-450 dark:text-neutral-400">
+                Reproduce un tono suave armónico al dispararse un recordatorio o notificación.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => playAlarmChime()}
+                className="h-7 text-xs gap-1 px-2 text-neutral-600 dark:text-neutral-300 cursor-pointer"
+                title="Escuchar sonido de prueba"
+              >
+                <Volume2 className="h-3.5 w-3.5" />
+                <span>Probar</span>
+              </Button>
+              <Checkbox
+                id="sound-enabled"
+                checked={alarmSettings.soundEnabled}
+                onCheckedChange={(checked) => handleUpdateAlarmSettings({ soundEnabled: !!checked })}
+                className="h-5 w-5 rounded-md border-neutral-300 dark:border-neutral-700 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500 cursor-pointer"
+              />
+            </div>
+          </div>
+
+        </div>
+      </div>
 
       {/* Configuration Card */}
       <div className="space-y-4">
