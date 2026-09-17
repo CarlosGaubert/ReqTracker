@@ -1,5 +1,6 @@
 import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification';
 import { db, Requirement } from './db';
+import { formatDateDDMMYYYY } from '../lib/utils';
 
 /**
  * Request system notification permissions
@@ -193,21 +194,21 @@ export async function checkAlarms(): Promise<boolean> {
       if (r.last_notified_date !== todayStr) {
         const abs = Math.abs(daysDiff);
         notificationTitle = `⚠️ Requerimiento Vencido: ${r.title}`;
-        notificationBody = `Proyecto "${projectName}" • Venció hace ${abs} ${abs === 1 ? 'día' : 'días'} (${r.estimated_date}).`;
+        notificationBody = `Proyecto "${projectName}" • Venció hace ${abs} ${abs === 1 ? 'día' : 'días'} (${formatDateDDMMYYYY(r.estimated_date)}).`;
         shouldNotify = true;
       }
     } else if (daysDiff === 0 && settings.notifyOnDueDate) {
       // Due Today: notify once today
       if (r.last_notified_date !== todayStr) {
         notificationTitle = `🔔 Vence Hoy: ${r.title}`;
-        notificationBody = `Proyecto "${projectName}" • El requerimiento vence hoy (${r.estimated_date}).`;
+        notificationBody = `Proyecto "${projectName}" • El requerimiento vence hoy (${formatDateDDMMYYYY(r.estimated_date)}).`;
         shouldNotify = true;
       }
     } else if (daysDiff > 0 && daysDiff <= advanceDays) {
       // Due Soon: notify once during the advance window
       if (!r.notified || r.last_notified_date !== todayStr) {
         notificationTitle = `⏳ Requerimiento Próximo: ${r.title}`;
-        notificationBody = `Proyecto "${projectName}" • Vence en ${daysDiff} ${daysDiff === 1 ? 'día' : 'días'} (${r.estimated_date}).`;
+        notificationBody = `Proyecto "${projectName}" • Vence en ${daysDiff} ${daysDiff === 1 ? 'día' : 'días'} (${formatDateDDMMYYYY(r.estimated_date)}).`;
         shouldNotify = true;
       }
     }

@@ -4,6 +4,7 @@ import { db, Project } from '../services/db';
 import { RequirementsSection } from './RequirementsSection';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { formatDateDDMMYYYY } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -174,7 +175,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                   )}
                   <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-neutral-500 dark:text-neutral-400 font-medium">
                     <Calendar className="h-3.5 w-3.5 text-neutral-400" />
-                    <span>{new Date(project.created_at).toLocaleDateString()}</span>
+                    <span>{formatDateDDMMYYYY(project.created_at)}</span>
                   </div>
                 </CardContent>
               </Card>

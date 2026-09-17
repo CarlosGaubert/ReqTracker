@@ -184,8 +184,10 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme);
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
+      document.documentElement.style.colorScheme = 'dark';
     } else {
       document.documentElement.classList.remove('dark');
+      document.documentElement.style.colorScheme = 'light';
     }
     localStorage.setItem('theme', theme);
   }, [theme]);
@@ -417,68 +419,70 @@ function App() {
         </header>
 
         <section className="content-body">
-          {activeSection === 'dashboard' && (
-            <DashboardSection
-              onNavigateToSection={(section, projId) => {
-                if (projId) {
-                  setSelectedProjectId(projId);
-                }
-                setActiveSection(section);
-              }}
-              onOpenCreateProject={() => {
-                setForceOpenNewProject(true);
-                setActiveSection('projects');
-              }}
-              onOpenCreateIdea={() => {
-                setForceOpenNewIdea(true);
-                setActiveSection('ideas');
-              }}
-              refreshTrigger={refreshTrigger}
-            />
-          )}
+          <div key={activeSection} className="section-fade-container">
+            {activeSection === 'dashboard' && (
+              <DashboardSection
+                onNavigateToSection={(section, projId) => {
+                  if (projId) {
+                    setSelectedProjectId(projId);
+                  }
+                  setActiveSection(section);
+                }}
+                onOpenCreateProject={() => {
+                  setForceOpenNewProject(true);
+                  setActiveSection('projects');
+                }}
+                onOpenCreateIdea={() => {
+                  setForceOpenNewIdea(true);
+                  setActiveSection('ideas');
+                }}
+                refreshTrigger={refreshTrigger}
+              />
+            )}
 
-          {activeSection === 'challenge' && (
-            <ChallengeSection
-              activeChallenge={activeChallenge}
-              onStartChallenge={handleStartChallenge}
-              onPauseToggle={handlePauseToggle}
-              onCancelChallenge={handleCancelChallenge}
-              onCompleteTask={handleCompleteTask}
-              refreshTrigger={refreshTrigger}
-            />
-          )}
+            {activeSection === 'challenge' && (
+              <ChallengeSection
+                activeChallenge={activeChallenge}
+                onStartChallenge={handleStartChallenge}
+                onPauseToggle={handlePauseToggle}
+                onCancelChallenge={handleCancelChallenge}
+                onCompleteTask={handleCompleteTask}
+                refreshTrigger={refreshTrigger}
+              />
+            )}
 
-          {activeSection === 'projects' && (
-            <ProjectsSection
-              onDataChange={handleDataChange}
-              refreshTrigger={refreshTrigger}
-              selectedProjectId={selectedProjectId}
-              setSelectedProjectId={setSelectedProjectId}
-              forceOpenNewProject={forceOpenNewProject}
-              setForceOpenNewProject={setForceOpenNewProject}
-            />
-          )}
+            {activeSection === 'projects' && (
+              <ProjectsSection
+                onDataChange={handleDataChange}
+                refreshTrigger={refreshTrigger}
+                selectedProjectId={selectedProjectId}
+                setSelectedProjectId={setSelectedProjectId}
+                forceOpenNewProject={forceOpenNewProject}
+                setForceOpenNewProject={setForceOpenNewProject}
+              />
+            )}
 
-          {activeSection === 'ideas' && (
-            <IdeasSection
-              onDataChange={handleDataChange}
-              refreshTrigger={refreshTrigger}
-              forceOpenNewIdea={forceOpenNewIdea}
-              setForceOpenNewIdea={setForceOpenNewIdea}
-            />
-          )}
+            {activeSection === 'ideas' && (
+              <IdeasSection
+                onDataChange={handleDataChange}
+                refreshTrigger={refreshTrigger}
+                forceOpenNewIdea={forceOpenNewIdea}
+                setForceOpenNewIdea={setForceOpenNewIdea}
+              />
+            )}
 
-          {activeSection === 'settings' && (
-            <SettingsSection
-              onSync={handleSync}
-              isSyncing={isSyncing}
-              onSessionChange={handleSessionChange}
-              syncError={syncError}
-              lastSyncedAt={lastSyncedAt}
-              syncInterval={syncInterval}
-              onIntervalChange={handleIntervalChange}
-            />
-          )}
+            {activeSection === 'settings' && (
+              <SettingsSection
+                onSync={handleSync}
+                isSyncing={isSyncing}
+                onSessionChange={handleSessionChange}
+                syncError={syncError}
+                lastSyncedAt={lastSyncedAt}
+                syncInterval={syncInterval}
+                onIntervalChange={handleIntervalChange}
+              />
+            )}
+          </div>
         </section>
       </main>
 

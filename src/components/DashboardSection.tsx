@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { formatDateDDMMYYYY } from '@/lib/utils';
 
 interface DashboardSectionProps {
   onNavigateToSection: (section: 'projects' | 'ideas' | 'settings', projectId?: string | null) => void;
@@ -247,7 +248,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
                         </Badge>
                         <div className="text-xs font-semibold text-neutral-600 dark:text-neutral-300 flex items-center gap-1.5">
                           <Calendar className="h-4 w-4 text-neutral-400" />
-                          <span>{new Date(`${task.estimated_date}T00:00:00`).toLocaleDateString()}</span>
+                          <span>{formatDateDDMMYYYY(task.estimated_date)}</span>
                         </div>
                       </div>
                     </CardContent>

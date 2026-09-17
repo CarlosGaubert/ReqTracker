@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './button';
+import { formatDateDDMMYYYY } from '@/lib/utils';
 
 interface DatePickerProps {
   value: string; // Format: "YYYY-MM-DD"
@@ -84,11 +85,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
   }
 
   // Display formatted date in input
-  const displayValue = value ? new Date(`${value}T00:00:00`).toLocaleDateString('es-ES', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  }) : '';
+  const displayValue = formatDateDDMMYYYY(value);
 
   return (
     <div className="relative w-full" ref={containerRef}>
@@ -97,8 +94,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
         onClick={() => setIsOpen(!isOpen)}
       >
         <CalendarIcon className="h-4.5 w-4.5 text-neutral-400" />
-        <span className={`text-sm font-medium ${value ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-400 dark:text-neutral-500'}`}>
-          {displayValue || 'Selecciona una fecha de vencimiento...'}
+        <span className={`text-sm font-medium ${value ? 'text-neutral-900 dark:text-neutral-100 font-mono tracking-wide' : 'text-neutral-400 dark:text-neutral-500'}`}>
+          {displayValue || 'dd/mm/aaaa (Seleccionar fecha)...'}
         </span>
       </div>
 

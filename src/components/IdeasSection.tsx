@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { MarkdownEditor } from './MarkdownEditor';
+import { formatDateTimeDDMMYYYY } from '@/lib/utils';
 
 interface IdeasSectionProps {
   onDataChange: () => void;
@@ -180,7 +181,7 @@ export const IdeasSection: React.FC<IdeasSectionProps> = ({
                 <div className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 font-medium mt-auto select-none">
                   <Calendar className="h-3.5 w-3.5 text-neutral-400" />
                   <span>
-                    {new Date(idea.created_at).toLocaleDateString()} {new Date(idea.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {formatDateTimeDDMMYYYY(idea.created_at)}
                   </span>
                 </div>
               </CardContent>

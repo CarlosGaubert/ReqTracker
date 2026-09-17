@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Bell, BellOff, Calendar, AlertCircle, List, Kanban, ArrowLeft, PanelLeftOpen, Clock, Moon } from 'lucide-react';
+import { Plus, Trash2, Bell, BellOff, Calendar, AlertCircle, List, Kanban, ArrowLeft, ArrowRight, Check, PanelLeftOpen, Clock, Moon, Sparkles } from 'lucide-react';
 import { db, Project, Requirement } from '../services/db';
 import { checkAlarms, getRequirementUrgency } from '../services/alarms';
+import { formatDateDDMMYYYY } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -39,6 +40,8 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [kanbanActiveColumn, setKanbanActiveColumn] = useState<'all' | 'todo' | 'in-progress' | 'done'>('all');
+  const [justCompletedId, setJustCompletedId] = useState<string | null>(null);
 
   // Form states
   const [title, setTitle] = useState('');
@@ -93,8 +96,18 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
     checkAlarms().catch(console.error);
   };
 
+  const triggerCompletionAnimation = (id: string) => {
+    setJustCompletedId(id);
+    setTimeout(() => {
+      setJustCompletedId(prev => (prev === id ? null : prev));
+    }, 1800);
+  };
+
   const handleToggleStatus = (req: Requirement) => {
     const nextStatus = req.status === 'done' ? 'todo' : 'done';
+    if (nextStatus === 'done') {
+      triggerCompletionAnimation(req.id);
+    }
     const updated: Requirement = {
       ...req,
       status: nextStatus,
@@ -105,6 +118,28 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
     onDataChange();
     loadRequirements();
     
+    if (updated.status !== 'done') {
+      checkAlarms().catch(console.error);
+    }
+  };
+
+  const handleMoveStatus = (req: Requirement, targetStatus: 'todo' | 'in-progress' | 'done', e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (req.status === targetStatus) return;
+
+    if (targetStatus === 'done') {
+      triggerCompletionAnimation(req.id);
+    }
+
+    const updated: Requirement = {
+      ...req,
+      status: targetStatus,
+      notified: targetStatus === 'done' ? req.notified : false,
+    };
+    db.saveRequirement(updated);
+    onDataChange();
+    loadRequirements();
+
     if (updated.status !== 'done') {
       checkAlarms().catch(console.error);
     }
@@ -146,6 +181,10 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
     const req = requirements.find(r => r.id === id);
     if (!req) return;
     if (req.status === targetStatus) return;
+
+    if (targetStatus === 'done') {
+      triggerCompletionAnimation(req.id);
+    }
 
     const updated: Requirement = {
       ...req,
@@ -316,13 +355,16 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
         <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-1">
           {requirements.map(req => {
             const urgency = getUrgencyInfo(req);
+            const isJustCompleted = justCompletedId === req.id;
             return (
-              <div
+              <div 
                 key={req.id}
-                className={`flex items-start justify-between gap-4.5 p-4.5 border border-neutral-200 dark:border-neutral-800 rounded-2xl transition-all duration-200 bg-white/70 dark:bg-neutral-900/30 shadow-sm ${
-                  req.status === 'done' 
-                    ? 'opacity-60 bg-neutral-50/50 dark:bg-neutral-950/20' 
-                    : urgency.className || 'hover:border-neutral-300 dark:hover:border-neutral-700'
+                className={`flex items-start justify-between gap-4.5 p-4.5 border rounded-2xl transition-all duration-300 bg-white/70 dark:bg-neutral-900/30 shadow-sm ${
+                  isJustCompleted
+                    ? 'border-emerald-500 ring-2 ring-emerald-500/50 bg-emerald-500/10 dark:bg-emerald-950/30 shadow-md shadow-emerald-500/10'
+                    : req.status === 'done' 
+                      ? 'opacity-65 bg-neutral-50/50 dark:bg-neutral-950/20 border-neutral-200 dark:border-neutral-800' 
+                      : urgency.className || 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'
                 }`}
               >
                 <div className="pt-0.5">
@@ -341,6 +383,12 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
                     }`}>
                       {req.title}
                     </h4>
+                    {isJustCompleted && (
+                      <Badge className="bg-emerald-500 text-white font-bold text-[10px] gap-1 px-2 py-0.5 animate-in zoom-in-75 fade-in duration-200 shadow-sm">
+                        <Sparkles className="h-3 w-3" />
+                        <span>¡Completado!</span>
+                      </Badge>
+                    )}
                     {req.status === 'in-progress' && (
                       <Badge variant="outline" className="h-5 border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] py-0.5 px-2 font-bold uppercase select-none rounded-md">
                         En Progreso
@@ -355,9 +403,9 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
                     </p>
                   )}
                   <div className="flex flex-wrap items-center gap-2.5 mt-1">
-                    <Badge variant="outline" className="border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-300 gap-1.5 py-1 px-2.5 select-none shadow-none text-xs font-semibold bg-transparent rounded-lg">
+                    <Badge variant="outline" className="border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-300 gap-1.5 py-1 px-2.5 select-none shadow-none text-xs font-semibold bg-transparent rounded-lg font-mono">
                       <Calendar className="h-3.5 w-3.5 text-neutral-400" />
-                      <span>Vence: {new Date(`${req.estimated_date}T00:00:00`).toLocaleDateString()}</span>
+                      <span>Vence: {formatDateDDMMYYYY(req.estimated_date)}</span>
                     </Badge>
                     
                     <Button
@@ -398,99 +446,222 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
         </div>
       ) : (
         /* KANBAN BOARD VIEW */
-        <div className="flex-1 kanban-container">
-          {(['todo', 'in-progress', 'done'] as const).map(status => {
-            const statusTasks = requirements.filter(r => r.status === status);
-            return (
-              <div 
-                key={status}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => handleDrop(e, status)}
-                className="kanban-column flex flex-col gap-3.5 border border-neutral-200 dark:border-neutral-800 bg-neutral-100/40 dark:bg-neutral-900/20 rounded-2xl p-3.5 sm:p-4 h-full overflow-hidden"
-              >
-                {/* Column Header */}
-                <div className="flex items-center justify-between px-1 flex-shrink-0">
-                  <h4 className="text-xs font-bold text-neutral-600 dark:text-neutral-300 uppercase tracking-wider select-none">
-                    {getStatusLabel(status)}
-                  </h4>
-                  <Badge variant="secondary" className="h-5.5 px-2 flex items-center justify-center text-xs font-bold bg-neutral-200/70 dark:bg-neutral-800/70 text-neutral-700 dark:text-neutral-300 select-none shadow-none rounded-md">
-                    {statusTasks.length}
-                  </Badge>
-                </div>
+        <div className="flex-1 flex flex-col min-h-0 gap-2.5">
+          {/* Responsive Column Filter Tabs */}
+          <div className="flex items-center gap-1.5 p-1 bg-neutral-100/80 dark:bg-neutral-900/60 rounded-xl w-full sm:w-auto overflow-x-auto select-none border border-neutral-200/60 dark:border-neutral-800/60 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setKanbanActiveColumn('all')}
+              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                kanbanActiveColumn === 'all'
+                  ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 shadow-2xs'
+                  : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
+              }`}
+            >
+              Todas las Columnas ({requirements.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setKanbanActiveColumn('todo')}
+              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                kanbanActiveColumn === 'todo'
+                  ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 shadow-2xs'
+                  : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
+              }`}
+            >
+              Por Hacer ({requirements.filter(r => r.status === 'todo').length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setKanbanActiveColumn('in-progress')}
+              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                kanbanActiveColumn === 'in-progress'
+                  ? 'bg-white dark:bg-neutral-800 text-amber-600 dark:text-amber-400 shadow-2xs'
+                  : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
+              }`}
+            >
+              En Progreso ({requirements.filter(r => r.status === 'in-progress').length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setKanbanActiveColumn('done')}
+              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                kanbanActiveColumn === 'done'
+                  ? 'bg-white dark:bg-neutral-800 text-emerald-600 dark:text-emerald-400 shadow-2xs'
+                  : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
+              }`}
+            >
+              Completado ({requirements.filter(r => r.status === 'done').length})
+            </button>
+          </div>
 
-                {/* Column Tasks Container */}
-                <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-0.5">
-                  {statusTasks.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center p-4 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-xl text-neutral-400 dark:border-neutral-800 text-neutral-400 dark:text-neutral-500 min-h-[120px]">
-                      <span className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 select-none">Columna vacía</span>
+          <div className={`flex-1 ${kanbanActiveColumn === 'all' ? 'kanban-container' : 'flex flex-col h-full overflow-hidden'}`}>
+            {(['todo', 'in-progress', 'done'] as const)
+              .filter(status => kanbanActiveColumn === 'all' || kanbanActiveColumn === status)
+              .map(status => {
+                const statusTasks = requirements.filter(r => r.status === status);
+                return (
+                  <div 
+                    key={status}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => handleDrop(e, status)}
+                    className={`kanban-column flex flex-col gap-3.5 border border-neutral-200 dark:border-neutral-800 bg-neutral-100/40 dark:bg-neutral-900/20 rounded-2xl p-3.5 sm:p-4 h-full overflow-hidden ${
+                      kanbanActiveColumn !== 'all' ? 'w-full max-w-3xl mx-auto flex-1' : ''
+                    }`}
+                  >
+                    {/* Column Header */}
+                    <div className="flex items-center justify-between px-1 flex-shrink-0">
+                      <h4 className="text-xs font-bold text-neutral-600 dark:text-neutral-300 uppercase tracking-wider select-none">
+                        {getStatusLabel(status)}
+                      </h4>
+                      <Badge variant="secondary" className="h-5.5 px-2 flex items-center justify-center text-xs font-bold bg-neutral-200/70 dark:bg-neutral-800/70 text-neutral-700 dark:text-neutral-300 select-none shadow-none rounded-md">
+                        {statusTasks.length}
+                      </Badge>
                     </div>
-                  ) : (
-                    statusTasks.map(task => {
-                      const urgency = getUrgencyInfo(task);
-                      return (
-                        <Card
-                          key={task.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, task.id)}
-                          className={`group cursor-grab active:cursor-grabbing border shadow-sm select-none transition-all duration-200 rounded-xl hover:border-neutral-300 dark:hover:border-neutral-700 bg-white dark:bg-neutral-950 relative ${
-                            task.status === 'done'
-                              ? 'opacity-60 bg-neutral-50/50 dark:bg-neutral-950/20'
-                              : urgency.className
-                          }`}
-                        >
-                          <CardContent className="p-4 flex flex-col gap-2.5">
-                            <div className="flex items-start justify-between gap-2">
-                              <h5 className={`font-bold text-sm leading-snug tracking-tight break-words pr-6 ${
-                                task.status === 'done' ? 'line-through text-neutral-400 dark:text-neutral-500' : 'text-neutral-900 dark:text-neutral-50'
-                              }`}>
-                                {task.title}
-                              </h5>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="absolute right-2.5 top-2.5 h-6 w-6 rounded-md text-neutral-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={(e) => handleDeleteRequirement(task.id, e)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                            {task.description && (
-                              <p className={`text-xs leading-relaxed break-words line-clamp-2 ${
-                                task.status === 'done' ? 'text-neutral-400 dark:text-neutral-500' : 'text-neutral-600 dark:text-neutral-300'
-                              }`}>
-                                {task.description}
-                              </p>
-                            )}
-                            <div className="flex flex-wrap items-center gap-2 mt-1 select-none">
-                              <Badge variant="outline" className="border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-300 gap-1.5 py-0.5 px-2 h-5.5 shadow-none text-[11px] font-semibold bg-transparent rounded-md">
-                                <Calendar className="h-3.5 w-3.5 text-neutral-400" />
-                                <span>{new Date(`${task.estimated_date}T00:00:00`).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}</span>
-                              </Badge>
-                              
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className={`h-5.5 border rounded-md px-2 py-0 hover:bg-neutral-200/60 dark:hover:bg-neutral-800/60 text-[11px] font-semibold gap-1 cursor-pointer transition-colors ${
-                                  task.alarm_enabled 
-                                    ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300' 
-                                    : 'border-neutral-200 dark:border-neutral-800 text-neutral-400 dark:text-neutral-500 bg-transparent'
-                                }`}
-                                onClick={(e) => handleToggleAlarm(task, e)}
-                              >
-                                {task.alarm_enabled ? <Bell className="h-3 w-3" /> : <BellOff className="h-3 w-3" />}
-                              </Button>
-                              
-                              {urgency.badge}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            );
-          })}
+
+                    {/* Column Tasks Container */}
+                    <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-0.5">
+                      {statusTasks.length === 0 ? (
+                        <div className="flex-1 flex flex-col items-center justify-center text-center p-4 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-xl text-neutral-400 dark:text-neutral-500 min-h-[120px]">
+                          <span className="text-xs font-semibold select-none">Columna vacía</span>
+                        </div>
+                      ) : (
+                        statusTasks.map(task => {
+                          const urgency = getUrgencyInfo(task);
+                          const isJustCompleted = justCompletedId === task.id;
+                          return (
+                            <Card
+                              key={task.id}
+                              draggable
+                              onDragStart={(e) => handleDragStart(e, task.id)}
+                              className={`group cursor-grab active:cursor-grabbing border shadow-sm select-none transition-all duration-300 rounded-xl hover:border-neutral-300 dark:hover:border-neutral-700 bg-white dark:bg-neutral-950 relative ${
+                                isJustCompleted
+                                  ? 'border-emerald-500 ring-2 ring-emerald-500/50 bg-emerald-500/10 dark:bg-emerald-950/30 shadow-md shadow-emerald-500/10'
+                                  : task.status === 'done'
+                                    ? 'opacity-65 bg-neutral-50/50 dark:bg-neutral-950/20'
+                                    : urgency.className
+                              }`}
+                            >
+                              <CardContent className="p-4 flex flex-col gap-2.5">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex items-center gap-1.5 flex-wrap pr-6">
+                                    <h5 className={`font-bold text-sm leading-snug tracking-tight break-words ${
+                                      task.status === 'done' ? 'line-through text-neutral-400 dark:text-neutral-500' : 'text-neutral-900 dark:text-neutral-50'
+                                    }`}>
+                                      {task.title}
+                                    </h5>
+                                    {isJustCompleted && (
+                                      <Badge className="bg-emerald-500 text-white font-bold text-[9px] gap-1 px-1.5 py-0.5 animate-in zoom-in-75 fade-in duration-200 shadow-sm">
+                                        <Sparkles className="h-2.5 w-2.5" />
+                                        <span>¡Completado!</span>
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-2.5 top-2.5 h-6 w-6 rounded-md text-neutral-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={(e) => handleDeleteRequirement(task.id, e)}
+                                    title="Eliminar requerimiento"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                                {task.description && (
+                                  <p className={`text-xs leading-relaxed break-words line-clamp-2 ${
+                                    task.status === 'done' ? 'text-neutral-400 dark:text-neutral-500' : 'text-neutral-600 dark:text-neutral-300'
+                                  }`}>
+                                    {task.description}
+                                  </p>
+                                )}
+                                
+                                <div className="flex flex-wrap items-center gap-2 mt-1 select-none">
+                                  <Badge variant="outline" className="border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-300 gap-1.5 py-0.5 px-2 h-5.5 shadow-none text-[11px] font-semibold bg-transparent rounded-md font-mono">
+                                    <Calendar className="h-3.5 w-3.5 text-neutral-400" />
+                                    <span>{formatDateDDMMYYYY(task.estimated_date)}</span>
+                                  </Badge>
+                                  
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={`h-5.5 border rounded-md px-2 py-0 hover:bg-neutral-200/60 dark:hover:bg-neutral-800/60 text-[11px] font-semibold gap-1 cursor-pointer transition-colors ${
+                                      task.alarm_enabled 
+                                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300' 
+                                        : 'border-neutral-200 dark:border-neutral-800 text-neutral-400 dark:text-neutral-500 bg-transparent'
+                                    }`}
+                                    onClick={(e) => handleToggleAlarm(task, e)}
+                                    title={task.alarm_enabled ? 'Alarma activada' : 'Alarma apagada'}
+                                  >
+                                    {task.alarm_enabled ? <Bell className="h-3 w-3" /> : <BellOff className="h-3 w-3" />}
+                                  </Button>
+                                  
+                                  {urgency.badge}
+                                </div>
+
+                                {/* Quick status move bar (especially great for vertical screens & touch) */}
+                                <div className="flex items-center justify-between gap-1 pt-2 border-t border-neutral-100 dark:border-neutral-800/40 mt-1">
+                                  <div className="flex items-center gap-1.5">
+                                    {task.status === 'todo' && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => handleMoveStatus(task, 'in-progress', e)}
+                                        className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/15 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 flex items-center gap-1 cursor-pointer transition-colors"
+                                        title="Mover a En Progreso"
+                                      >
+                                        <span>Progreso</span>
+                                        <ArrowRight className="h-2.5 w-2.5" />
+                                      </button>
+                                    )}
+                                    {task.status === 'in-progress' && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => handleMoveStatus(task, 'todo', e)}
+                                          className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400 hover:bg-neutral-500/10 px-1.5 py-0.5 rounded-md border border-neutral-200 dark:border-neutral-800 flex items-center gap-0.5 cursor-pointer transition-colors"
+                                          title="Regresar a Por Hacer"
+                                        >
+                                          <ArrowLeft className="h-2.5 w-2.5" />
+                                          <span>Atrás</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => handleMoveStatus(task, 'done', e)}
+                                          className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/15 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 flex items-center gap-1 cursor-pointer transition-colors"
+                                          title="Marcar como Completado"
+                                        >
+                                          <Check className="h-2.5 w-2.5" />
+                                          <span>Completar</span>
+                                        </button>
+                                      </>
+                                    )}
+                                    {task.status === 'done' && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => handleMoveStatus(task, 'in-progress', e)}
+                                        className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400 hover:bg-neutral-500/10 px-2 py-0.5 rounded-md border border-neutral-200 dark:border-neutral-800 flex items-center gap-1 cursor-pointer transition-colors"
+                                        title="Reabrir requerimiento"
+                                      >
+                                        <ArrowLeft className="h-2.5 w-2.5" />
+                                        <span>Reabrir</span>
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  <span className="text-[10px] font-mono text-neutral-400 dark:text-neutral-500">
+                                    {formatDateDDMMYYYY(task.estimated_date)}
+                                  </span>
+                                </div>
+
+                              </CardContent>
+                            </Card>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
         </div>
       )}
 
@@ -559,13 +730,13 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
                   <select
                     value={alarmDaysBefore}
                     onChange={(e) => setAlarmDaysBefore(Number(e.target.value))}
-                    className="h-8 px-2.5 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-500 text-xs cursor-pointer"
+                    className="h-8 px-2.5 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-500 text-xs cursor-pointer [color-scheme:light] dark:[color-scheme:dark]"
                   >
-                    <option value={0}>El mismo día del vencimiento</option>
-                    <option value={1}>1 día antes</option>
-                    <option value={2}>2 días antes</option>
-                    <option value={3}>3 días antes (Predeterminado)</option>
-                    <option value={7}>1 semana antes (7 días)</option>
+                    <option value={0} className="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 py-1">El mismo día del vencimiento</option>
+                    <option value={1} className="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 py-1">1 día antes</option>
+                    <option value={2} className="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 py-1">2 días antes</option>
+                    <option value={3} className="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 py-1">3 días antes (Predeterminado)</option>
+                    <option value={7} className="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 py-1">1 semana antes (7 días)</option>
                   </select>
                 </div>
               )}

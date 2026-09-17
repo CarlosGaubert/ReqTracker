@@ -22,6 +22,7 @@ import {
 } from '../services/alarms';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { formatDateDDMMYYYY } from '@/lib/utils';
 
 interface NotificationCenterProps {
   onNavigateToProject: (projectId: string) => void;
@@ -350,7 +351,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                         </button>
 
                         <div className="text-[11px] text-neutral-450 dark:text-neutral-400 mt-0.5">
-                          Fecha límite: <span className="font-medium text-neutral-700 dark:text-neutral-300">{item.estimated_date}</span>
+                          Fecha límite: <span className="font-medium text-neutral-700 dark:text-neutral-300">{formatDateDDMMYYYY(item.estimated_date)}</span>
                         </div>
                       </div>
 

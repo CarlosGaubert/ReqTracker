@@ -257,13 +257,13 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
             <select
               value={alarmSettings.advanceDays}
               onChange={(e) => handleUpdateAlarmSettings({ advanceDays: Number(e.target.value) })}
-              className="h-9 px-3 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 font-medium text-xs cursor-pointer focus:ring-1 focus:ring-emerald-500"
+              className="h-9 px-3 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100 font-medium text-xs cursor-pointer focus:ring-1 focus:ring-emerald-500 [color-scheme:light] dark:[color-scheme:dark]"
             >
-              <option value={0}>El mismo día del vencimiento</option>
-              <option value={1}>1 día antes</option>
-              <option value={2}>2 días antes</option>
-              <option value={3}>3 días antes (Predeterminado)</option>
-              <option value={7}>1 semana antes (7 días)</option>
+              <option value={0} className="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 py-1">El mismo día del vencimiento</option>
+              <option value={1} className="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 py-1">1 día antes</option>
+              <option value={2} className="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 py-1">2 días antes</option>
+              <option value={3} className="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 py-1">3 días antes (Predeterminado)</option>
+              <option value={7} className="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 py-1">1 semana antes (7 días)</option>
             </select>
           </div>
 
