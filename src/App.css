@@ -466,6 +466,26 @@ body {
   min-width: 280px;
   flex: 1 0 auto;
   scroll-snap-align: center;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Drag and Drop Enhancements */
+[draggable="true"],
+.draggable-card {
+  -webkit-user-drag: element !important;
+  user-drag: element !important;
+  cursor: grab;
+}
+
+[draggable="true"]:active,
+.draggable-card:active {
+  cursor: grabbing !important;
+}
+
+.kanban-column.drag-over-active {
+  border-color: rgba(16, 185, 129, 0.6) !important;
+  background-color: rgba(16, 185, 129, 0.05) !important;
+  box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.35), 0 8px 24px -4px rgba(16, 185, 129, 0.12) !important;
 }
 
 @media (min-width: 640px) {

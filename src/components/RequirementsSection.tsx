@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Bell, BellOff, Calendar, AlertCircle, List, Kanban, ArrowLeft, ArrowRight, Check, PanelLeftOpen, Clock, Moon, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Bell, BellOff, Calendar, AlertCircle, List, Kanban, ArrowLeft, ArrowRight, Check, PanelLeftOpen, Clock, Moon, Sparkles, GripVertical, ArrowDownToLine } from 'lucide-react';
 import { db, Project, Requirement } from '../services/db';
 import { checkAlarms, getRequirementUrgency } from '../services/alarms';
 import { formatDateDDMMYYYY } from '@/lib/utils';
@@ -42,6 +42,8 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [kanbanActiveColumn, setKanbanActiveColumn] = useState<'all' | 'todo' | 'in-progress' | 'done'>('all');
   const [justCompletedId, setJustCompletedId] = useState<string | null>(null);
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<'todo' | 'in-progress' | 'done' | null>(null);
 
   // Form states
   const [title, setTitle] = useState('');
@@ -170,12 +172,41 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
 
   // Drag and Drop Handlers
   const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedTaskId(id);
+    e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', id);
+    try {
+      e.dataTransfer.setData('application/x-reqtracker-id', id);
+    } catch (_) {}
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTaskId(null);
+    setDragOverColumn(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, status: 'todo' | 'in-progress' | 'done') => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverColumn !== status) {
+      setDragOverColumn(status);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    const relatedTarget = e.relatedTarget as HTMLElement | null;
+    if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
+      setDragOverColumn(null);
+    }
   };
 
   const handleDrop = (e: React.DragEvent, targetStatus: 'todo' | 'in-progress' | 'done') => {
     e.preventDefault();
-    const id = e.dataTransfer.getData('text/plain');
+    e.stopPropagation();
+    setDragOverColumn(null);
+    const id = e.dataTransfer.getData('text/plain') || draggedTaskId;
+    setDraggedTaskId(null);
     if (!id) return;
 
     const req = requirements.find(r => r.id === id);
@@ -503,48 +534,69 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
                 return (
                   <div 
                     key={status}
-                    onDragOver={(e) => e.preventDefault()}
+                    onDragOver={(e) => handleDragOver(e, status)}
+                    onDragEnter={(e) => handleDragOver(e, status)}
+                    onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, status)}
-                    className={`kanban-column flex flex-col gap-3.5 border border-neutral-200 dark:border-neutral-800 bg-neutral-100/40 dark:bg-neutral-900/20 rounded-2xl p-3.5 sm:p-4 h-full overflow-hidden ${
-                      kanbanActiveColumn !== 'all' ? 'w-full max-w-3xl mx-auto flex-1' : ''
-                    }`}
+                    className={`kanban-column flex flex-col gap-3.5 border transition-all duration-200 rounded-2xl p-3.5 sm:p-4 h-full overflow-hidden ${
+                      dragOverColumn === status
+                        ? 'drag-over-active border-emerald-500 ring-2 ring-emerald-500/40 bg-emerald-500/5 dark:bg-emerald-950/20'
+                        : 'border-neutral-200 dark:border-neutral-800 bg-neutral-100/40 dark:bg-neutral-900/20'
+                    } ${kanbanActiveColumn !== 'all' ? 'w-full max-w-3xl mx-auto flex-1' : ''}`}
                   >
                     {/* Column Header */}
-                    <div className="flex items-center justify-between px-1 flex-shrink-0">
-                      <h4 className="text-xs font-bold text-neutral-600 dark:text-neutral-300 uppercase tracking-wider select-none">
+                    <div className="flex items-center justify-between px-1 flex-shrink-0 select-none">
+                      <h4 className="text-xs font-bold text-neutral-600 dark:text-neutral-300 uppercase tracking-wider">
                         {getStatusLabel(status)}
                       </h4>
-                      <Badge variant="secondary" className="h-5.5 px-2 flex items-center justify-center text-xs font-bold bg-neutral-200/70 dark:bg-neutral-800/70 text-neutral-700 dark:text-neutral-300 select-none shadow-none rounded-md">
+                      <Badge variant="secondary" className="h-5.5 px-2 flex items-center justify-center text-xs font-bold bg-neutral-200/70 dark:bg-neutral-800/70 text-neutral-700 dark:text-neutral-300 shadow-none rounded-md">
                         {statusTasks.length}
                       </Badge>
                     </div>
 
                     {/* Column Tasks Container */}
-                    <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-0.5">
+                    <div 
+                      className="flex-1 flex flex-col gap-3 overflow-y-auto pr-0.5"
+                      onDragOver={(e) => handleDragOver(e, status)}
+                      onDrop={(e) => handleDrop(e, status)}
+                    >
+                      {/* Drop Target Indicator Banner */}
+                      {dragOverColumn === status && draggedTaskId && (
+                        <div className="border-2 border-dashed border-emerald-500/80 bg-emerald-500/10 dark:bg-emerald-950/30 rounded-xl p-3 flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold text-xs animate-pulse select-none">
+                          <ArrowDownToLine className="h-4 w-4 animate-bounce" />
+                          <span>Soltar aquí en {getStatusLabel(status)}</span>
+                        </div>
+                      )}
+
                       {statusTasks.length === 0 ? (
-                        <div className="flex-1 flex flex-col items-center justify-center text-center p-4 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-xl text-neutral-400 dark:text-neutral-500 min-h-[120px]">
-                          <span className="text-xs font-semibold select-none">Columna vacía</span>
+                        <div className="flex-1 flex flex-col items-center justify-center text-center p-4 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-xl text-neutral-400 dark:text-neutral-500 min-h-[120px] select-none">
+                          <span className="text-xs font-semibold">Columna vacía</span>
                         </div>
                       ) : (
                         statusTasks.map(task => {
                           const urgency = getUrgencyInfo(task);
                           const isJustCompleted = justCompletedId === task.id;
+                          const isBeingDragged = draggedTaskId === task.id;
                           return (
                             <Card
                               key={task.id}
                               draggable
                               onDragStart={(e) => handleDragStart(e, task.id)}
-                              className={`group cursor-grab active:cursor-grabbing border shadow-sm select-none transition-all duration-300 rounded-xl hover:border-neutral-300 dark:hover:border-neutral-700 bg-white dark:bg-neutral-950 relative ${
-                                isJustCompleted
-                                  ? 'border-emerald-500 ring-2 ring-emerald-500/50 bg-emerald-500/10 dark:bg-emerald-950/30 shadow-md shadow-emerald-500/10'
-                                  : task.status === 'done'
-                                    ? 'opacity-65 bg-neutral-50/50 dark:bg-neutral-950/20'
-                                    : urgency.className
+                              onDragEnd={handleDragEnd}
+                              className={`group cursor-grab active:cursor-grabbing border shadow-sm select-none transition-all duration-200 rounded-xl hover:border-neutral-300 dark:hover:border-neutral-700 bg-white dark:bg-neutral-950 relative draggable-card ${
+                                isBeingDragged
+                                  ? 'opacity-35 scale-[0.98] border-dashed border-emerald-500/60 shadow-inner'
+                                  : isJustCompleted
+                                    ? 'border-emerald-500 ring-2 ring-emerald-500/50 bg-emerald-500/10 dark:bg-emerald-950/30 shadow-md shadow-emerald-500/10'
+                                    : task.status === 'done'
+                                      ? 'opacity-65 bg-neutral-50/50 dark:bg-neutral-950/20'
+                                      : urgency.className
                               }`}
                             >
                               <CardContent className="p-4 flex flex-col gap-2.5">
                                 <div className="flex items-start justify-between gap-2">
                                   <div className="flex items-center gap-1.5 flex-wrap pr-6">
+                                    <GripVertical className="h-3.5 w-3.5 text-neutral-400 dark:text-neutral-500 flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity" />
                                     <h5 className={`font-bold text-sm leading-snug tracking-tight break-words ${
                                       task.status === 'done' ? 'line-through text-neutral-400 dark:text-neutral-500' : 'text-neutral-900 dark:text-neutral-50'
                                     }`}>
@@ -558,6 +610,10 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
                                     )}
                                   </div>
                                   <Button
+                                    type="button"
+                                    draggable={false}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onDragStart={(e) => e.stopPropagation()}
                                     variant="ghost"
                                     size="icon"
                                     className="absolute right-2.5 top-2.5 h-6 w-6 rounded-md text-neutral-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity"
@@ -582,6 +638,10 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
                                   </Badge>
                                   
                                   <Button
+                                    type="button"
+                                    draggable={false}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onDragStart={(e) => e.stopPropagation()}
                                     variant="ghost"
                                     size="sm"
                                     className={`h-5.5 border rounded-md px-2 py-0 hover:bg-neutral-200/60 dark:hover:bg-neutral-800/60 text-[11px] font-semibold gap-1 cursor-pointer transition-colors ${
@@ -604,6 +664,9 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
                                     {task.status === 'todo' && (
                                       <button
                                         type="button"
+                                        draggable={false}
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                        onDragStart={(e) => e.stopPropagation()}
                                         onClick={(e) => handleMoveStatus(task, 'in-progress', e)}
                                         className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/15 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 flex items-center gap-1 cursor-pointer transition-colors"
                                         title="Mover a En Progreso"
@@ -616,6 +679,9 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
                                       <>
                                         <button
                                           type="button"
+                                          draggable={false}
+                                          onMouseDown={(e) => e.stopPropagation()}
+                                          onDragStart={(e) => e.stopPropagation()}
                                           onClick={(e) => handleMoveStatus(task, 'todo', e)}
                                           className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400 hover:bg-neutral-500/10 px-1.5 py-0.5 rounded-md border border-neutral-200 dark:border-neutral-800 flex items-center gap-0.5 cursor-pointer transition-colors"
                                           title="Regresar a Por Hacer"
@@ -625,6 +691,9 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
                                         </button>
                                         <button
                                           type="button"
+                                          draggable={false}
+                                          onMouseDown={(e) => e.stopPropagation()}
+                                          onDragStart={(e) => e.stopPropagation()}
                                           onClick={(e) => handleMoveStatus(task, 'done', e)}
                                           className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/15 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 flex items-center gap-1 cursor-pointer transition-colors"
                                           title="Marcar como Completado"
@@ -637,6 +706,9 @@ export const RequirementsSection: React.FC<RequirementsSectionProps> = ({
                                     {task.status === 'done' && (
                                       <button
                                         type="button"
+                                        draggable={false}
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                        onDragStart={(e) => e.stopPropagation()}
                                         onClick={(e) => handleMoveStatus(task, 'in-progress', e)}
                                         className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400 hover:bg-neutral-500/10 px-2 py-0.5 rounded-md border border-neutral-200 dark:border-neutral-800 flex items-center gap-1 cursor-pointer transition-colors"
                                         title="Reabrir requerimiento"
